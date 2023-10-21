@@ -15,9 +15,9 @@ public abstract class AbstractCenter {
     public int jobsInService;
     public int totalJobsProcessed;
     public Event currentEvent; //Ultimo evento processato, serve per le stats
-    private final double MEAN_SERVICE_TIME; //E[S], va passato ad Exponential, così calcola un valore di exp con questa media
+    protected final double MEAN_SERVICE_TIME; //E[S], va passato ad Exponential, così calcola un valore di exp con questa media
 
-    private NextEventController nextEventController; //il controller che sta gestendo la simulazione e la lista degli eventi
+    protected NextEventController nextEventController; //il controller che sta gestendo la simulazione e la lista degli eventi
 
 
     public AbstractCenter(int servers, int id, double serviceTime, NextEventController controller) {
@@ -43,7 +43,7 @@ public abstract class AbstractCenter {
 
 
 
-    private void updateStats(Event event) {  //Aggiorna l'area per le statistiche
+    protected void updateStats(Event event) {  //Aggiorna l'area per le statistiche
         if (jobsInService + jobsInQueue > 0) {
             //Se nel sistema ci sono job, aggiorno le stats (source: esempio libro Ssq3.java)
             double deltaTime = event.eventTime - currentEvent.eventTime;
@@ -53,9 +53,10 @@ public abstract class AbstractCenter {
             area.queue += deltaTime * jobsInQueue;
             area.service += deltaTime;
         }
+        this.currentEvent = event;
     }
 
-    private double getService() { //calcola il tempo a cui finirà il job che sta entrando in servizio
+    protected double getService() { //calcola il tempo a cui finirà il job che sta entrando in servizio
 
         nextEventController.rngs.selectStream(this.ID); //Ogni centro usa stream = ID. Gli arrivi useranno stream > ID più grande
         return Exponential.exponential(this.MEAN_SERVICE_TIME, nextEventController.rngs); //Tempo servizio del job.
