@@ -1,0 +1,8 @@
+1 - 6 : li usano i centri con id = 1,...,6
+7 - 8 : flussi di arrivo auto/camion
+
+
+101: p_out dopo centro 1
+102: p_out dopo centro 2
+103: P_CA (si calcola nel centro 3)
+104: prob. centro 5 da centro 4
