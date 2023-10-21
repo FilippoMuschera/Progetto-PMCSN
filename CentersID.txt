@@ -1,0 +1,22 @@
+ID                    Nome del Centro
+
+1                     Controllo visivo + targa auto
+2                     Controllo visivo + targa Camion
+3                     Controllo documenti automobile
+4                     Pesa camion + documenti trasporto
+5                     Controllo Merce camion
+6                     Controllo Approfondito (Auto & Camion)
+
+
+
+Disposizione centri:
+
+
+1 ----------> 3 -------------------------->
+                                    |
+                                    |
+                                    ↓
+2 ----------> 4 --------- 5 ------- 6 ----->
+                    ↓         ↑
+                    |         |
+                    ↪---------↗
