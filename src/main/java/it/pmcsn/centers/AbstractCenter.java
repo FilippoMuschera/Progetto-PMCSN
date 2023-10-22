@@ -5,6 +5,8 @@ import it.pmcsn.event.Event;
 import it.pmcsn.event.EventType;
 import it.pmcsn.rngs.Exponential;
 
+import java.text.DecimalFormat;
+
 public abstract class AbstractCenter {
 
     public int SERVERS; //Numero di server nel centro
@@ -14,6 +16,7 @@ public abstract class AbstractCenter {
     public int jobsInQueue;
     public int jobsInService;
     public int totalJobsProcessed;
+    public double lastArrival = 0.0;
     public Event currentEvent; //Ultimo evento processato, serve per le stats
     protected final double MEAN_SERVICE_TIME; //E[S], va passato ad Exponential, così calcola un valore di exp con questa media
 
@@ -24,7 +27,7 @@ public abstract class AbstractCenter {
         this.SERVERS = servers;
         this.ID = id;
         this.MEAN_SERVICE_TIME = serviceTime;
-        this.area = new SqArea();
+        this.area = new SqArea(servers - 1); //Il numero di server si conta partendo da 1, la dimensione dell'array -> N-1
         this.jobsInQueue = 0;
         this.jobsInService = 0;
         this.totalJobsProcessed = 0;
@@ -43,16 +46,13 @@ public abstract class AbstractCenter {
 
 
 
-    protected void updateStats(Event event) {  //Aggiorna l'area per le statistiche
-        if (jobsInService + jobsInQueue > 0) {
-            //Se nel sistema ci sono job, aggiorno le stats (source: esempio libro Ssq3.java)
+    protected void updateArea(Event event) {  //Aggiorna l'area per le statistiche
+
+        if (jobsInQueue + jobsInService > 0){
             double deltaTime = event.eventTime - currentEvent.eventTime;
-            //TODO assicurarsi che per single server e multi-server le stats si calcolino alla stessa maniera
-            //mi pare di si, però meglio controllare
-            area.node += deltaTime * (jobsInQueue + jobsInService);
-            area.queue += deltaTime * jobsInQueue;
-            area.service += deltaTime;
+            area.area += deltaTime * (jobsInQueue + jobsInService);
         }
+
         this.currentEvent = event;
     }
 
@@ -64,15 +64,26 @@ public abstract class AbstractCenter {
     }
     public void handleNewArrival(Event event) {
 
-        updateStats(event);
+        updateArea(event);
+        if (event.eventType == EventType.ARRIVAL && event.eventTime > lastArrival) //dovrebbe sempre essere vera, ma per sicurezza la metto
+            lastArrival = event.eventTime;
         //Se sono un arrivo, in coda non c'è nessuno, e c'è un server libero -> vado in servizio
         if (jobsInQueue == 0 && jobsInService < SERVERS) {
             jobsInService++;
-            this.currentEvent = event;
             Event completionForThisArrival = new Event(EventType.COMPLETION, this.ID);
             completionForThisArrival.eventTime = this.getService() + event.eventTime; //+event.eventTime perchè getService calcola solo il tempo di servizio
             //ma bisogna aggiungere il tempo della simulazione a cui si è arrivati.
+
+
+            //update services time
+            double serviceTime = completionForThisArrival.eventTime - event.eventTime; //tempo_fine - tempo_inizio
+            int chosenServer = area.assignJobToFreeServer(serviceTime);
+            completionForThisArrival.assignedServer = chosenServer;
+
+
             nextEventController.eventList.add(completionForThisArrival);
+
+
         } else {
             //metto il job in coda
             jobsInQueue++;
@@ -82,9 +93,10 @@ public abstract class AbstractCenter {
 
 
     public void handleCompletion(Event event) {
-        this.updateStats(event);
+        this.updateArea(event);
         jobsInService--;
         totalJobsProcessed++;
+        area.setServerFree(event);
 
         //Se ho avuto un completamento, e c'è un job in coda -> va in servizio
         if (jobsInQueue > 0) {
@@ -92,14 +104,50 @@ public abstract class AbstractCenter {
             Event complOfNewJob = new Event(EventType.COMPLETION, this.ID);
             complOfNewJob.eventTime = this.getService() + event.eventTime;
 
-            nextEventController.eventList.add(complOfNewJob);
             jobsInQueue--;
+
+            //update services time
+            double serviceTime = complOfNewJob.eventTime - event.eventTime; //tempo_fine - tempo_inizio
+            int chosenServer = area.assignJobToFreeServer(serviceTime);
+            complOfNewJob.assignedServer = chosenServer;
+
+
+            nextEventController.eventList.add(complOfNewJob);
+
         }
 
         this.generateEventAfterCompl(event); //Genero eventuali nuovi eventi per questo centro. Es.: completamento nel centro
         //3 (Pesa dei Camion) genera un arrivo nel centro 4 (Controllo Merce Camion). La creazione di questo evento avviene
         //con questa invocazione.
 
+
+    }
+
+    public void printStats(String centerName) {
+
+        DecimalFormat f = new DecimalFormat("###0.00");
+        DecimalFormat g = new DecimalFormat("###0.000");
+
+        System.out.println("\n*** Stats for center: " + centerName + " ***");
+
+        System.out.println("\nfor " + totalJobsProcessed + " jobs the service node statistics are:\n");
+        System.out.println("  avg interarrivals .. =   " + f.format(this.lastArrival / totalJobsProcessed));
+        System.out.println("  avg wait ........... =   " + f.format(area.area / totalJobsProcessed));
+        System.out.println("  avg # in node ...... =   " + f.format(area.area / this.currentEvent.eventTime));
+
+        for (int s = 0; s <= SERVERS - 1; s++)          /* adjust area to calculate */
+            area.area -= area.serverServices[s];              /* averages for the queue   */
+
+        System.out.println("  avg delay .......... =   " + f.format(area.area / totalJobsProcessed));
+        System.out.println("  avg # in queue ..... =   " + f.format(area.area / this.currentEvent.eventTime));
+        System.out.println("\nthe server statistics are:\n");
+        System.out.println("    server     utilization     ");
+        for (int s = 0; s <= SERVERS - 1; s++) {
+            System.out.print("       " + s + "          " + g.format(area.serverServices[s] / this.currentEvent.eventTime) + "            \n");
+
+        }
+
+        System.out.println("---------------------------------------------------------------------");
 
     }
 
