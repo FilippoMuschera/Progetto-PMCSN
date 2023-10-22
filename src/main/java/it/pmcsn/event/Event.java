@@ -7,6 +7,8 @@ public class Event {
     public int centerID; //ID del centro a cui è destinato l'evento
     public double eventTime;
 
+    public int assignedServer;
+
 
     public Event(EventType type, int id) {
         this.centerID = id;
