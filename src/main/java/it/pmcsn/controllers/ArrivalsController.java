@@ -8,8 +8,8 @@ import it.pmcsn.rngs.Rngs;
 public class ArrivalsController {
 
 
-    private double carArrivalRate;
-    private double camionArrivalRate;
+    private double carArrivalRate; //tasso di interarrivo auto
+    private double camionArrivalRate; //tasso interarrivo camion
 
     private NextEventController controller;
     private Event carOnHold; //"onHold" nel senso che l'arrivo è stato generato ma non ancora inserito nella coda perchè
@@ -19,17 +19,19 @@ public class ArrivalsController {
     private final int carStream = 7;
     private  final int camionStream = 8;
 
-    private double carSumArrivals = 0; //Somma dei tempi di arrivo delle auto. Così calcolo tempo interarrivo della prossima auto,
+    private double carSumArrivals = 0.0; //Somma dei tempi di arrivo delle auto. Così calcolo tempo interarrivo della prossima auto,
                                        // e sommandolo a questo valore ottengo l'istante di arrivo
 
-    private double camionSumArrivals = 0; //come per le auto
+    private double camionSumArrivals = 0.0; //come per le auto
+    public int counterCars = 0;
+    public int counterCamion = 0;
 
 
-    public ArrivalsController(double carRate, double camionRate, NextEventController controller) {
+    public ArrivalsController(double carInterarrivalRate, double camionInterarrivalRate, NextEventController controller) {
         this.carOnHold = null;
         this.camionOnHold = null;
-        this.carArrivalRate = carRate;
-        this.camionArrivalRate = camionRate;
+        this.carArrivalRate = carInterarrivalRate;
+        this.camionArrivalRate = camionInterarrivalRate;
         this.controller = controller;
     }
 
@@ -38,6 +40,7 @@ public class ArrivalsController {
         controller.rngs.selectStream(carStream);
         carSumArrivals += Exponential.exponential(carArrivalRate, controller.rngs);
         e.eventTime = carSumArrivals;
+        counterCars++; //debug
         return e;
     }
 
@@ -46,6 +49,7 @@ public class ArrivalsController {
         controller.rngs.selectStream(camionStream);
         camionSumArrivals += Exponential.exponential(camionArrivalRate, controller.rngs);
         e.eventTime = camionSumArrivals;
+        counterCamion++; //debug
         return e;
     }
 
