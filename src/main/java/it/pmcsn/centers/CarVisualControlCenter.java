@@ -12,7 +12,7 @@ public class CarVisualControlCenter extends AbstractCenter{
 
     @Override
     int getNextCenterId() {
-        return 2;
+        return 3;
     }
 
     @Override
