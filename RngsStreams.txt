@@ -5,4 +5,6 @@
 101: p_out dopo centro 1
 102: p_out dopo centro 2
 103: P_CA (si calcola nel centro 3)
-104: prob. centro 5 da centro 4
+104: p_out dopo centro 4
+141: p_classe1 per priority queue centro 4
+105: p_controllo_approfondito da centro 5 verso centro 6
