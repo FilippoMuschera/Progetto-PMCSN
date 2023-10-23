@@ -132,13 +132,13 @@ public abstract class AbstractCenter {
 
         System.out.println("\nfor " + totalJobsProcessed + " jobs the service node statistics are:\n");
         System.out.println("  avg interarrivals .. =   " + f.format(this.lastArrival / totalJobsProcessed));
-        System.out.println("  avg wait ........... =   " + f.format(area.area / totalJobsProcessed));
+        System.out.println("  avg wait ........... =   " + f.format(area.area / totalJobsProcessed) + " s = " + f.format((area.area / totalJobsProcessed)/60) + " min");
         System.out.println("  avg # in node ...... =   " + f.format(area.area / this.currentEvent.eventTime));
 
         for (int s = 0; s <= SERVERS - 1; s++)          /* adjust area to calculate */
             area.area -= area.serverServices[s];              /* averages for the queue   */
 
-        System.out.println("  avg delay .......... =   " + f.format(area.area / totalJobsProcessed));
+        System.out.println("  avg delay .......... =   " + f.format(area.area / totalJobsProcessed)+ " s = " + f.format((area.area / totalJobsProcessed)/60) + " min");
         System.out.println("  avg # in queue ..... =   " + f.format(area.area / this.currentEvent.eventTime));
         System.out.println("\nthe server statistics are:\n");
         System.out.println("    server     utilization     ");
