@@ -9,6 +9,7 @@ public class CarDocCheck extends AbstractCenter{
     double probFurtherCheck; //sarebbe la P_CA della relazione/schema
     public CarDocCheck(int servers, double serviceTime, NextEventController controller, double probFurtherChecks) {
         super(servers, 3, serviceTime, controller);
+        this.probFurtherCheck = probFurtherChecks;
     }
 
     @Override
