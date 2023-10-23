@@ -27,22 +27,22 @@ public class NextEventController {
 
     public void initCentersList() {
 
-        CarVisualControlCenter center1 = new CarVisualControlCenter(3, 18.0, this);
+        CarVisualControlCenter center1 = new CarVisualControlCenter(2, 18.0, this);
         centerList.add(center1);
 
-        CamionVisualControlCenter center2 = new CamionVisualControlCenter(3, 45.0, this);
+        CamionVisualControlCenter center2 = new CamionVisualControlCenter(3, 48.0, this);
         centerList.add(center2);
 
-        CarDocCheck center3 = new CarDocCheck(5, 60.0, this, 0.2);
+        CarDocCheck center3 = new CarDocCheck(4, 50.0, this, 0.01);
         centerList.add(center3);
 
-        CamionWeightCenter center4 = new CamionWeightCenter(4, 120.0, this);
+        CamionWeightCenter center4 = new CamionWeightCenter(7, 110.0, this);
         centerList.add(center4);
 
-        GoodsControlCenter center5 = new GoodsControlCenter(4, 600.0, this, 0.4);
+        GoodsControlCenter center5 = new GoodsControlCenter(10, 175.0, this, 0.04);
         centerList.add(center5);
 
-        AdvancedChecksCenter center6 = new AdvancedChecksCenter(2, 1080.0, this);
+        AdvancedChecksCenter center6 = new AdvancedChecksCenter(3, 1000.0, this);
         centerList.add(center6);
 
 
