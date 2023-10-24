@@ -8,6 +8,7 @@ import java.util.List;
 public class SqArea {
     double area = 0.0;                    /* time integrated number in the node  */
     Double[] serverServices;
+    Integer[] servedByServer;
     Integer[] serverMask;
 
     private SqArea(){} //should not use this one
@@ -15,10 +16,12 @@ public class SqArea {
     public SqArea(int numOfServers) {
         this.serverServices = new Double[numOfServers + 1]; //Array con capacità pari al numero dei server
         this.serverMask = new Integer[numOfServers + 1];
+        this.servedByServer = new Integer[numOfServers + 1];
 
         for (int i = 0; i <= numOfServers; i++) {
             serverServices[i] = 0.0; // Imposta ogni elemento a zero
             serverMask[i] = 0; //tutti liberi inizialmente
+            servedByServer[i] = 0;
         }
     }
 
@@ -28,6 +31,7 @@ public class SqArea {
             if (serverMask[i] == 0) { //trovo il server libero
                 serverMask[i] = 1;
                 serverServices[i] += serviceTime;
+                servedByServer[i]++;
                 return i;
 
             }

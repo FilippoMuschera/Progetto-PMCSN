@@ -141,11 +141,16 @@ public abstract class AbstractCenter {
         System.out.println("  avg delay .......... =   " + f.format(area.area / totalJobsProcessed)+ " s = " + f.format((area.area / totalJobsProcessed)/60) + " min");
         System.out.println("  avg # in queue ..... =   " + f.format(area.area / this.currentEvent.eventTime));
         System.out.println("\nthe server statistics are:\n");
-        System.out.println("    server     utilization     ");
+        System.out.println("    server     utilization     avg service");
+        double avgUtilization = 0;
         for (int s = 0; s <= SERVERS - 1; s++) {
-            System.out.print("       " + s + "          " + g.format(area.serverServices[s] / this.currentEvent.eventTime) + "            \n");
+            System.out.print("       " + s + "          " + g.format(area.serverServices[s] / this.currentEvent.eventTime) + "          " +
+                    g.format(area.serverServices[s]/area.servedByServer[s]) + "\n");
+            avgUtilization += area.serverServices[s] / this.currentEvent.eventTime;
+
 
         }
+        System.out.println("  avg utilization .......... =   " + g.format(avgUtilization/SERVERS) + "\n");
 
         System.out.println("---------------------------------------------------------------------");
 
