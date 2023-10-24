@@ -67,6 +67,7 @@ public class NextEventController {
                 Event nextArrival = this.arrivalsController.getNextArrival();
                 eventList.add(nextArrival); //Se il gate è open genero il prossimo arrivo
                 isGateOpen = nextArrival.eventTime < this.STOP_TIME;//Se l'ultimo arrivo è oltre il closing time -> chiudo il gate
+                totalArrivals++; //stats for the sim
 
             }
 
@@ -116,6 +117,13 @@ public class NextEventController {
 
         System.out.println("***   DEBUG  ***\nCar arrivals = " + nextEventController.arrivalsController.counterCars +
                 "\nCamion arrivals = " + nextEventController.arrivalsController.counterCamion);
+        if (nextEventController.arrivalsController.counterCamion + nextEventController.arrivalsController.counterCars != nextEventController.totalArrivals + 1)
+            //-1 perchè genero un arrivo che non userò mai: io ho sempre due arrivi pronti (una macchina e un camion). Appena uno dei due triggera lo
+            //stop time, chiudo il gate. A quel punto, l'arrivo rimasto nell'arrivalController è stato generato, ma sarebbe arrivato dopo quello che ha
+            //triggerato la chiusura del gate. In pratica è un arrivo che trova il cancello chiuso, e non entra nel sistema, ma viene generato, quindi
+            //non lo considero nel computo degli arrivi perchè è corretto che non arrivi mai nel sistema. Se lo facesse vuol dire che ho consentito
+            //a un job l'arrivo dopo la chiusura del cancello.
+            throw new RuntimeException("Numero Arrivi generati != Numero arrivi nel sistema"); //Non dovrebbe mai accadere, ma è un check
     }
 
 
