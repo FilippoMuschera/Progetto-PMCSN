@@ -8,8 +8,8 @@ import it.pmcsn.rngs.Rngs;
 public class ArrivalsController {
 
 
-    private double carArrivalRate; //tasso di interarrivo auto
-    private double camionArrivalRate; //tasso interarrivo camion
+    public double carArrivalRate; //tasso di interarrivo auto
+    public double camionArrivalRate; //tasso interarrivo camion
 
     private NextEventController controller;
     private Event carOnHold; //"onHold" nel senso che l'arrivo è stato generato ma non ancora inserito nella coda perchè
