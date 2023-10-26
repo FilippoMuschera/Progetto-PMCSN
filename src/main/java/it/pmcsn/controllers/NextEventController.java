@@ -83,6 +83,14 @@ public class NextEventController {
                     this.arrivalsController.carArrivalRate = 1/carRates[currentTimeSlot - 1]; //-1 perchè currentTimeSlot parte da 1
                     this.arrivalsController.camionArrivalRate = 1/camionRates[currentTimeSlot - 1];//anche qui come sopra
 
+                    //Se sto cambiando fascia oraria -> faccio un dump delle statistiche della fascia oraria appena terminata
+                    System.out.println("+++++++ STATS DUMP FASCIA ORARIA #" + (currentTimeSlot - 1) + " +++++++\n"); //-1 perchè è appena stato incrementato
+                    //ma le stats sono della fascia appena finita
+                    for (AbstractCenter center : centerList) {
+                        center.printStats(center.getClass().getSimpleName());
+                    }
+                    System.out.println("++++++++++++++++++++++++++++++++++++\n");
+
 
 
                 }
@@ -120,7 +128,8 @@ public class NextEventController {
                 }
             }
 
-            //TODO Stampo stats per la fascia oraria quando termina
+
+
 
 
 
