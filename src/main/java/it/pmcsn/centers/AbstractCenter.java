@@ -123,7 +123,15 @@ public abstract class AbstractCenter {
 
     }
 
+    //TODO CONSISTENCY CHECK TRA JOB PROCESSATI E SQAREA.JOBSPROCESSED[i]
+
     public void printStats(String centerName) {
+        int sumJobProcessed = 0;
+        for (int i = 0; i < area.servedByServer.length; i++) {
+            sumJobProcessed += area.servedByServer[i];
+        } //Check, just for debug, should never fail
+        if (sumJobProcessed != this.totalJobsProcessed)
+            throw new RuntimeException("sumJobProcessed = " + sumJobProcessed + ", totalJobProcessed = " + totalJobsProcessed);
 
         DecimalFormat f = new DecimalFormat("###0.00");
         DecimalFormat g = new DecimalFormat("###0.000");
@@ -135,11 +143,12 @@ public abstract class AbstractCenter {
         System.out.println("  avg wait ........... =   " + f.format(area.area / totalJobsProcessed) + " s = " + f.format((area.area / totalJobsProcessed)/60) + " min");
         System.out.println("  avg # in node ...... =   " + f.format(area.area / this.currentEvent.eventTime));
 
+        double tempArea = this.area.area; //non uso il vero valore di area.area, sennò sottraendoci i tempi di servizio invalido tutto
         for (int s = 0; s <= SERVERS - 1; s++)          /* adjust area to calculate */
-            area.area -= area.serverServices[s];              /* averages for the queue   */
+            tempArea -= area.serverServices[s];        /* averages for the queue   */
 
-        System.out.println("  avg delay .......... =   " + f.format(area.area / totalJobsProcessed)+ " s = " + f.format((area.area / totalJobsProcessed)/60) + " min");
-        System.out.println("  avg # in queue ..... =   " + f.format(area.area / this.currentEvent.eventTime));
+        System.out.println("  avg delay .......... =   " + f.format(tempArea / totalJobsProcessed)+ " s = " + f.format((tempArea / totalJobsProcessed)/60) + " min");
+        System.out.println("  avg # in queue ..... =   " + f.format(tempArea / this.currentEvent.eventTime));
         System.out.println("\nthe server statistics are:\n");
         System.out.println("    server     utilization     avg service");
         double avgUtilization = 0;
