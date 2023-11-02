@@ -19,7 +19,7 @@ public class NextEventController {
 
     private int STOP_TIME; //"Gate closed" time
 
-    private int totalArrivals = 0;
+    private int jobsProcessed = 0;
 
     private boolean isGateOpen = true;
 
@@ -54,15 +54,105 @@ public class NextEventController {
     }
 
     public void initArrivals() {
-        this.arrivalsController = new ArrivalsController(12.76, 15.873, this);
+        //this.arrivalsController = new ArrivalsController(12.76, 15.873, this);
+        this.arrivalsController = new ArrivalsController(24.76, 30.1, this);
         this.STOP_TIME = 86400 * 1; //Secondi in un giorno * giorni di simulazione
     }
 
+    public void startSimulationInfinite(int batchNum, int jobsPerBatch) {
+        jobsProcessed = 0;
+        int currentBatch = 0;
+        Double[][][] dataMatrix = new Double[6][batchNum][6]; //6 righe, batchNums colonne, ogni elemento è un array di 6 double
+        /*
+         * La DataMatrix contiene una riga per ogni centro, e una colonna per ogni batch. Ogni elemento ij è una lista
+         * con tutte le statistiche del centro i per il batch j.
+         */
+
+        while (isGateOpen || !eventList.isEmpty()) {
+            if (jobsProcessed % jobsPerBatch == 0 && jobsProcessed > 0) {
+
+                int i = 0;
+                for (AbstractCenter center : this.centerList) {
+                    dataMatrix[i][currentBatch] = center.getBatchCenterStats().toArray(new Double[0]); //set elemento ij
+                    center.notifyStatsReset();
+                    i++;
+                }
+
+                //Batch terminata, si passa alla prossima
+                currentBatch++;
+            }
+            if (currentBatch == batchNum)
+                break;
+
+            if (isGateOpen) {
+                Event nextArrival = this.arrivalsController.getNextArrival();
+                eventList.add(nextArrival); //Se il gate è open genero il prossimo arrivo
+                isGateOpen = nextArrival.eventTime < this.STOP_TIME;//Se l'ultimo arrivo è oltre il closing time -> chiudo il gate
+
+            }
+
+            eventList.sort(Comparator.comparingDouble(event -> event.eventTime)); //ordino gli eventi
+
+
+            Event nextEvent = eventList.get(0);
+            eventList.remove(0); //pop
+
+            if (nextEvent.eventType == EventType.ARRIVAL) {
+
+
+                for (AbstractCenter center : centerList) {
+                    if (center.ID == nextEvent.centerID) {
+                        center.handleNewArrival(nextEvent);
+                        break;
+                    }
+                }
+
+
+            }
+            else {
+                for (AbstractCenter center : centerList) {
+                    if (center.ID == nextEvent.centerID) {
+                        int currentEventListSize = this.eventList.size();
+                        center.handleCompletion(nextEvent);
+                        if ((center.ID == 3 || center.ID == 6) && currentEventListSize == this.eventList.size()) {
+                            /*
+                             * Questo if è true se il centro 3 o il centro 6 (quelli finali) hanno processato un completamento,
+                             * e il job è uscito dal sistema.
+                             * Per il centro 6 questo è sempre vero: un completamento esce SEMPRE dal sistema. Per il centro 3 un
+                             * job può uscire dal sistema, o finire nel centro 6 per controlli più approfonditi. In questo caso
+                             * quindi, controllando che la size della eventList non sia cambiata, mi assicuro che non è stato generato
+                             * un nuovo arrivo. Infatti, nel caso in cui il completamento è del centro 3, e questo invece di far uscire il
+                             * job dal sistema lo invii al centro 6, vedrei la lista degli eventi avere una size aumentata di uno, dato
+                             * che avrei un nuovo arrivo.
+                             */
+                            jobsProcessed++; //Se è un job che è uscito dal sistema -> l'ho processato
+                        }
+                        break;
+                    }
+                }
+            }
+
+        }
+        //Simulazione finita, stampo le statistiche
+        for (AbstractCenter center : centerList) {
+            center.printStats(center.getClass().getSimpleName());
+        }
+
+        //TODO scrivere i file .dat per calcolare intervalli di confidenza
+        /*
+         * Per ogni centro batch, per ogni metrica, scrivo in un file .dat tutti i valori medi della metrica.
+         * Per esempio, per il centro CarVisualCheck avrò un file .dat con il E[Tq] di ogni batch, uno con il
+         * E[Ts] di ogni batch, e così via, per ogni metrica, per ogni centro.
+         *
+         */
+
+    }
 
     public void startSimulationWithTimeSlots(int timeSlotDuration, Double[] carRates, Double[] camionRates){
-        totalArrivals = 0;
+        jobsProcessed = 0;
         int currentTimeSlot = 1;
         int slotsNumber = carRates.length;
+        Event nextEvent = null;
 
         this.arrivalsController = new ArrivalsController(1/carRates[0], 1/camionRates[0], this);
         this.STOP_TIME = timeSlotDuration * slotsNumber;
@@ -73,10 +163,11 @@ public class NextEventController {
                 Event nextArrival = this.arrivalsController.getNextArrival();
                 eventList.add(nextArrival); //Se il gate è open genero il prossimo arrivo
                 isGateOpen = nextArrival.eventTime < this.STOP_TIME;//Se l'ultimo arrivo è oltre il closing time -> chiudo il gate
-                totalArrivals++; //stats for the sim
+                jobsProcessed++; //stats for the sim
 
                 //Handling delle fasce orarie. Se cambia la fascia oraria devo aggiornare il tasso di arrivo
-
+                /*TODO è giusto cambiare la fascia oraria su un arrivo GENERATO? Forse andrebbe fatto su un arrivo EFFETTIVO, ovvero quando entra nel sistema, non quando
+                viene messo nella coda dei "nextEvent"*/
                 if ((nextArrival.eventTime > (timeSlotDuration * currentTimeSlot)) && isGateOpen) { //se il gate è chiuso non devo aggiornare più nulla qui
                     //Devo cambiare fascia oraria
                     currentTimeSlot++;
@@ -87,7 +178,8 @@ public class NextEventController {
                     System.out.println("+++++++ STATS DUMP FASCIA ORARIA #" + (currentTimeSlot - 1) + " +++++++\n"); //-1 perchè è appena stato incrementato
                     //ma le stats sono della fascia appena finita
                     for (AbstractCenter center : centerList) {
-                        center.printStats(center.getClass().getSimpleName());
+                        center.statsDumpForLastTimeSlot(center.getClass().getSimpleName());
+                        center.notifyStatsReset();
                     }
                     System.out.println("++++++++++++++++++++++++++++++++++++\n");
 
@@ -101,7 +193,7 @@ public class NextEventController {
             eventList.sort(Comparator.comparingDouble(event -> event.eventTime)); //ordino gli eventi
 
 
-            Event nextEvent = eventList.get(0);
+            nextEvent = eventList.get(0);
             eventList.remove(0); //pop
 
 
@@ -135,13 +227,20 @@ public class NextEventController {
 
         }
         //Simulazione finita, stampo le statistiche
+        System.out.println("+++++++ STATS DUMP FASCIA ORARIA #" + (currentTimeSlot) + " +++++++\n");
+        System.out.println("NextEvent time of last event: " + ((nextEvent.eventTime - 86400)/3600) + "hours after gate closed");
+        for (AbstractCenter center : centerList) {
+            center.statsDumpForLastTimeSlot(center.getClass().getSimpleName());
+        }
+
+        System.out.println("+++++++ STATISTICHE FINALI COMPLESSIVE +++++++\n");
         for (AbstractCenter center : centerList) {
             center.printStats(center.getClass().getSimpleName());
         }
 
         System.out.println("***   DEBUG  ***\nCar arrivals = " + arrivalsController.counterCars +
                 "\nCamion arrivals = " + arrivalsController.counterCamion);
-        if (arrivalsController.counterCamion + arrivalsController.counterCars != totalArrivals + 1)
+        if (arrivalsController.counterCamion + arrivalsController.counterCars != jobsProcessed + 1)
             //-1 perchè genero un arrivo che non userò mai: io ho sempre due arrivi pronti (una macchina e un camion). Appena uno dei due triggera lo
             //stop time, chiudo il gate. A quel punto, l'arrivo rimasto nell'arrivalController è stato generato, ma sarebbe arrivato dopo quello che ha
             //triggerato la chiusura del gate. In pratica è un arrivo che trova il cancello chiuso, e non entra nel sistema, ma viene generato, quindi
@@ -153,14 +252,14 @@ public class NextEventController {
 
     public void starSimulation() {
 
-        totalArrivals = 0;
+        jobsProcessed = 0;
         while (isGateOpen || !eventList.isEmpty()) {
 
             if (isGateOpen) {
                 Event nextArrival = this.arrivalsController.getNextArrival();
                 eventList.add(nextArrival); //Se il gate è open genero il prossimo arrivo
                 isGateOpen = nextArrival.eventTime < this.STOP_TIME;//Se l'ultimo arrivo è oltre il closing time -> chiudo il gate
-                totalArrivals++; //stats for the sim
+                jobsProcessed++; //stats for the sim
 
             }
 
@@ -210,7 +309,7 @@ public class NextEventController {
 
         System.out.println("***   DEBUG  ***\nCar arrivals = " + nextEventController.arrivalsController.counterCars +
                 "\nCamion arrivals = " + nextEventController.arrivalsController.counterCamion);
-        if (nextEventController.arrivalsController.counterCamion + nextEventController.arrivalsController.counterCars != nextEventController.totalArrivals + 1)
+        if (nextEventController.arrivalsController.counterCamion + nextEventController.arrivalsController.counterCars != nextEventController.jobsProcessed + 1)
             //-1 perchè genero un arrivo che non userò mai: io ho sempre due arrivi pronti (una macchina e un camion). Appena uno dei due triggera lo
             //stop time, chiudo il gate. A quel punto, l'arrivo rimasto nell'arrivalController è stato generato, ma sarebbe arrivato dopo quello che ha
             //triggerato la chiusura del gate. In pratica è un arrivo che trova il cancello chiuso, e non entra nel sistema, ma viene generato, quindi
