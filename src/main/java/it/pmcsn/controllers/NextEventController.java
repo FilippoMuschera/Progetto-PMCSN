@@ -3,9 +3,16 @@ package it.pmcsn.controllers;
 import it.pmcsn.centers.*;
 import it.pmcsn.event.Event;
 import it.pmcsn.event.EventType;
+import it.pmcsn.rngs.Acs;
+import it.pmcsn.rngs.Estimate;
 import it.pmcsn.rngs.Rngs;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -53,13 +60,13 @@ public class NextEventController {
         this.rngs.plantSeeds(123456789L);
     }
 
-    public void initArrivals() {
+    public void initArrivals(int stopTime) {
         //this.arrivalsController = new ArrivalsController(12.76, 15.873, this);
         this.arrivalsController = new ArrivalsController(24.76, 30.1, this);
-        this.STOP_TIME = 86400 * 1; //Secondi in un giorno * giorni di simulazione
+        this.STOP_TIME = stopTime; //Secondi in un giorno * giorni di simulazione
     }
 
-    public void startSimulationInfinite(int batchNum, int jobsPerBatch) {
+    public void startSimulationInfinite(int batchNum, int jobsPerBatch) throws IOException {
         jobsProcessed = 0;
         int currentBatch = 0;
         Double[][][] dataMatrix = new Double[6][batchNum][6]; //6 righe, batchNums colonne, ogni elemento è un array di 6 double
@@ -84,7 +91,7 @@ public class NextEventController {
             if (currentBatch == batchNum)
                 break;
 
-            if (isGateOpen) {
+            if (isGateOpen && this.arrivalIsNeeded(this.eventList)) {
                 Event nextArrival = this.arrivalsController.getNextArrival();
                 eventList.add(nextArrival); //Se il gate è open genero il prossimo arrivo
                 isGateOpen = nextArrival.eventTime < this.STOP_TIME;//Se l'ultimo arrivo è oltre il closing time -> chiudo il gate
@@ -96,6 +103,9 @@ public class NextEventController {
 
             Event nextEvent = eventList.get(0);
             eventList.remove(0); //pop
+            jobsProcessed++; //aggiorno il conteggio dei job processati, dato che da qui in poi il codice si occuperà
+            //proprio di processare il job di cui ho appena fatto la pop.
+
 
             if (nextEvent.eventType == EventType.ARRIVAL) {
 
@@ -125,7 +135,6 @@ public class NextEventController {
                              * job dal sistema lo invii al centro 6, vedrei la lista degli eventi avere una size aumentata di uno, dato
                              * che avrei un nuovo arrivo.
                              */
-                            jobsProcessed++; //Se è un job che è uscito dal sistema -> l'ho processato
                         }
                         break;
                     }
@@ -138,7 +147,6 @@ public class NextEventController {
             center.printStats(center.getClass().getSimpleName());
         }
 
-        //TODO scrivere i file .dat per calcolare intervalli di confidenza
         /*
          * Per ogni centro batch, per ogni metrica, scrivo in un file .dat tutti i valori medi della metrica.
          * Per esempio, per il centro CarVisualCheck avrò un file .dat con il E[Tq] di ogni batch, uno con il
@@ -146,7 +154,91 @@ public class NextEventController {
          *
          */
 
+        this.generateDatFiles(batchNum, dataMatrix);
+        this.estimateDatFiles();
+
     }
+
+    private void estimateDatFiles() throws IOException {
+        List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenter",
+                "GoodsControlCenter", "AdvancedCheckCenter");
+        List<String> statNames = Arrays.asList("Lambda", "E[Ts]", "E[Ns]", "E[Tq]", "E[Nq]", "meanRho");
+        String directory = "batch_files";
+        for (String cn : centerNames) {
+            for (String sn : statNames) {
+                Estimate estimate = new Estimate();
+                Acs acs = new Acs();
+                estimate.createInterval(directory, cn + "_" + sn);
+                acs.autocorrelation(directory, cn + "_" + sn);
+            }
+        }
+    }
+
+    private boolean arrivalIsNeeded(List<Event> eventList) {
+        /*
+         * Per verificare se serve un nuovo arrivo "esterno" controllo se ne ho già uno nella lista.
+         * "Esterno" nel senso che deve arrivare dall'esterno del sistema, e quindi essere un evento indirizzato
+         * al centro 1 (arrivo auto) o al centro 2 (arrivo camion). Per esempio: un arrivo con centerID = 5 è un arrivo, ma per
+         * il centro numero 5, e significa che arriva necessariamente dal centro 4, quindi non è un arrivo "esterno".
+         * Gli arrivi al centro 1 o 2 possono avvenire solo dall'esterno, dato che non ci sono feedback nella rete.
+         * (Vedi CentersID.txt per maggiore chiarezza).
+         */
+        for (Event e : eventList) {
+            if (e.eventType == EventType.ARRIVAL && (e.centerID == 1 || e.centerID == 2))
+                return false;
+        }
+        return true;
+    }
+
+    private void generateDatFiles(int batchNums, Double[][][] dataMatrix) {
+        int i = 0;
+        List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenter",
+                "GoodsControlCenter", "AdvancedCheckCenter");
+        List<String> statNames = Arrays.asList("Lambda", "E[Ts]", "E[Ns]", "E[Tq]", "E[Nq]", "meanRho");
+        String directory = "batch_files";
+        for (int stat = 0; stat < statNames.size(); stat++) {
+            for (i = 0; i < centerList.size(); i++) {
+                File dir = new File(directory);
+                BufferedWriter bw = null;
+                try {
+                if (!dir.exists())
+                    dir.mkdirs();
+
+                //creo (o apro) il file .dat per la statistica #stat del centro i-simo, in cui raccolgo i dati di ogni batch j
+
+                File file = new File(dir, centerNames.get(i) + "_" + statNames.get(stat) + ".dat");
+                if (!file.exists())
+                    file.createNewFile();
+                FileWriter writer = new FileWriter(file);
+                bw = new BufferedWriter(writer);
+                for (int j = 0; j < batchNums; j++) {
+                    //Scrivo nel file .dat il valore della statistica corrente, per la j-sima batch
+
+
+                        bw.append(String.valueOf(dataMatrix[i][j][stat]));
+                        bw.append("\n");
+                        bw.flush();
+
+
+
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    try {
+                        bw.flush();
+                        bw.close();
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+    }
+
+
 
     public void startSimulationWithTimeSlots(int timeSlotDuration, Double[] carRates, Double[] camionRates){
         jobsProcessed = 0;
@@ -303,7 +395,7 @@ public class NextEventController {
         NextEventController nextEventController = new NextEventController();
         nextEventController.initCentersList();
         nextEventController.initRngs();
-        nextEventController.initArrivals();
+        nextEventController.initArrivals(86400*1);
 
         nextEventController.starSimulation();
 
