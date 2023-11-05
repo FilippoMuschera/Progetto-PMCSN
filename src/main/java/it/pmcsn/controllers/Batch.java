@@ -10,14 +10,14 @@ public class Batch {
 
 
 
-    public void batchMeansInfHorizon() {
+    public void batchMeansInfHorizon() throws IOException {
 
         NextEventController nextEventController = new NextEventController();
-        nextEventController.initArrivals();
+        nextEventController.initArrivals(Integer.MAX_VALUE); //La simulazione si ferma quando finiscono i batch
         nextEventController.initCentersList();
         nextEventController.initRngs();
 
-        nextEventController.startSimulationInfinite(4, 256);
+        nextEventController.startSimulationInfinite(512, 10000);
 
 
 
@@ -26,43 +26,8 @@ public class Batch {
 
     }
 
-    public static void writeFile(Double[] list, String directoryName, String filename) {
-        File directory = new File(directoryName);
-        BufferedWriter bw = null;
 
-        try {
-            if (!directory.exists())
-                directory.mkdirs();
-
-            File file = new File(directory, filename + ".dat");
-
-            if (!file.exists())
-                file.createNewFile();
-
-            FileWriter writer = new FileWriter(file);
-            bw = new BufferedWriter(writer);
-
-
-            for (Double value : list) {
-                bw.append(String.valueOf(value));
-                bw.append("\n");
-                bw.flush();
-            }
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        } finally {
-            try {
-                bw.flush();
-                bw.close();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        }
-    }
-
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Batch batch = new Batch();
         batch.batchMeansInfHorizon();
     }
