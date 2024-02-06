@@ -218,7 +218,7 @@ public abstract class AbstractCenter {
             avgUtilization += currentSlotArea.serverServices[s] / this.currentEvent.eventTime;
 
         }
-        returnList.add(avgUtilization);
+        returnList.add(avgUtilization/SERVERS);
 
         return returnList;
 
