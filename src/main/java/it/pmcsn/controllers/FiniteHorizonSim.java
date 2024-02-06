@@ -4,7 +4,7 @@ import java.util.List;
 
 public class FiniteHorizonSim {
     /*Lo scopo di questa classe è quello di eseguire una simulazione con le 4 possibili fasce orarie, eseguite in modo
-     * consecutivo una all'altra. Lo stato iniziale della seconda fascia oraria sarà dunque quello iniziale della terza
+     * consecutivo una all'altra. Lo stato finale della seconda fascia oraria sarà dunque quello iniziale della terza
      * fascia, e così via.
      */
 

@@ -17,7 +17,7 @@ public class Batch {
         nextEventController.initCentersList();
         nextEventController.initRngs();
 
-        nextEventController.startSimulationInfinite(512, 10000);
+        nextEventController.startSimulationInfinite(128, 10000);
 
 
 
