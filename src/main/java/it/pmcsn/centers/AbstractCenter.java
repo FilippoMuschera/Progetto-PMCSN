@@ -5,6 +5,7 @@ import it.pmcsn.event.Event;
 import it.pmcsn.event.EventType;
 import it.pmcsn.rngs.Exponential;
 
+import java.awt.geom.Area;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +47,6 @@ public abstract class AbstractCenter {
     abstract void generateEventAfterCompl(Event event); //Dopo un completamento ogni centro deve generare un nuovo
     //arrivo per il centro successivo, a meno che non sia un centro "finale" dove i job escono sempre dalla rete.
     //Va implementata diversamente per ogni centro, perchè dipende dalla sua posizione nella rete.
-
 
 
     protected void updateArea(Event event) {  //Aggiorna l'area per le statistiche

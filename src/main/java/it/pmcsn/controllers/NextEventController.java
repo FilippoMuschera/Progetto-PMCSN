@@ -43,7 +43,7 @@ public class NextEventController {
         CarDocCheck center3 = new CarDocCheck(4, 50.0, this, 0.01);
         centerList.add(center3);
 
-        CamionWeightCenter center4 = new CamionWeightCenter(7, 110.0, this);
+        CamionWeightCenterV3 center4 = new CamionWeightCenterV3(6, 100.0, this);
         centerList.add(center4);
 
         GoodsControlCenter center5 = new GoodsControlCenter(9, 175.0, this, 0.04);
@@ -57,12 +57,14 @@ public class NextEventController {
 
     public void initRngs() {
         this.rngs = new Rngs();
-        this.rngs.plantSeeds(123456789L);
+        this.rngs.plantSeeds(999L);
     }
 
     public void initArrivals(int stopTime) {
         //this.arrivalsController = new ArrivalsController(12.76, 15.873, this);
-        this.arrivalsController = new ArrivalsController(24.76, 30.1, this);
+        //this.arrivalsController = new ArrivalsController(24.76, 30.1, this);
+        this.arrivalsController = new ArrivalsController(62.5, 26.31579, this);
+
         this.STOP_TIME = stopTime; //Secondi in un giorno * giorni di simulazione
     }
 
@@ -160,7 +162,7 @@ public class NextEventController {
     }
 
     private void estimateDatFiles() throws IOException {
-        List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenter",
+        List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenterV3",
                 "GoodsControlCenter", "AdvancedCheckCenter");
         List<String> statNames = Arrays.asList("Lambda", "E[Ts]", "E[Ns]", "E[Tq]", "E[Nq]", "meanRho");
         String directory = "batch_files";
@@ -192,7 +194,7 @@ public class NextEventController {
 
     private void generateDatFiles(int batchNums, Double[][][] dataMatrix) {
         int i = 0;
-        List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenter",
+        List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenterV3",
                 "GoodsControlCenter", "AdvancedCheckCenter");
         List<String> statNames = Arrays.asList("Lambda", "E[Ts]", "E[Ns]", "E[Tq]", "E[Nq]", "meanRho");
         String directory = "batch_files";
