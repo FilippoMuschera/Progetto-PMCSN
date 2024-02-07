@@ -143,5 +143,9 @@ public class Estimate{
         return null;
     }
 
+    public static void main(String[] args) {
+        Estimate estimate = new Estimate();
+        estimate.createInterval("/home/filippo/Desktop/Uni/PMCSN/Script", "FASCIA_ORARIA-CarVisualCenter_E[Ts]_AGGREGATE");
+    }
 
 }

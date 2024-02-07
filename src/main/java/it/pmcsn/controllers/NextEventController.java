@@ -34,10 +34,10 @@ public class NextEventController {
         CarVisualControlCenter center1 = new CarVisualControlCenter(1, 18.0, this);
         centerList.add(center1);
 
-        CamionVisualControlCenter center2 = new CamionVisualControlCenter(2, 48.0, this);
+        CamionVisualControlCenter center2 = new CamionVisualControlCenter(4, 48.0, this);
         centerList.add(center2);
 
-        CarDocCheck center3 = new CarDocCheck(1, 50.0, this, 0.03);
+        CarDocCheck center3 = new CarDocCheck(3, 50.0, this, 0.03);
         centerList.add(center3);
 
         CamionWeightCenterV3 center4 = new CamionWeightCenterV3(4, 100.0, this);
@@ -58,17 +58,14 @@ public class NextEventController {
     }
 
     public void initArrivals(int stopTime) {
-        //this.arrivalsController = new ArrivalsController(12.76, 15.873, this);
-        //this.arrivalsController = new ArrivalsController(24.76, 30.1, this);
-//        this.arrivalsController = new ArrivalsController(62.5, 26.31579, this);
-        this.arrivalsController = new ArrivalsController(62.5, 26.31579, this);
+        this.arrivalsController = new ArrivalsController(20.83, 15.625, this);
 
 
         this.STOP_TIME = stopTime;
     }
 
 
-    public void startFiniteHorizonSim(int[][] config, int iteration) throws IOException {
+    public void startFiniteHorizonSim(int[][] config, int iteration, double[] p_ca, double[] p_cc, Double[] carsArrivals, Double[] camionArrivals) throws IOException {
         CarVisualControlCenter center1 = new CarVisualControlCenter(config[0], 18.0, this);
         centerList.add(center1);
 
@@ -88,6 +85,9 @@ public class NextEventController {
         centerList.add(center6);
 
         for (AbstractCenter center : centerList) center.setTimeSlot(0); //Set di tutti i centri al primo time slot
+        //set iniziale interrarivi
+        this.arrivalsController.carArrivalRate = 1/carsArrivals[0];
+        this.arrivalsController.camionArrivalRate = 1/camionArrivals[0];
         for (int t = 1200; t <= 24*60*60; t += 1200) {
             //Creo eventi di sampling delle statistiche e di cambio time slot
             Event samplingEvent = new Event(EventType.SAMPLING, -1);
@@ -142,9 +142,13 @@ public class NextEventController {
             if (nextEvent.eventType == EventType.CHANGE_TS) {
                 currentTimeSlot++;
                 for (AbstractCenter center : centerList) {
-                    //center.printStats(center.getClass().getSimpleName());
                     center.setTimeSlot(currentTimeSlot);
                 }
+                //Cambio le probabilità dei controlli avanzati al cambiare della fascia oraria
+                center3.setProbFurtherCheck(p_ca[currentTimeSlot]);
+                center5.setProbOfAdvancedInspection(p_cc[currentTimeSlot]);
+                this.arrivalsController.carArrivalRate = 1/carsArrivals[currentTimeSlot];
+                this.arrivalsController.camionArrivalRate = 1/camionArrivals[currentTimeSlot];
                 continue;
             }
 
@@ -168,7 +172,6 @@ public class NextEventController {
             else {
                 for (AbstractCenter center : centerList) {
                     if (center.ID == nextEvent.centerID) {
-                        int currentEventListSize = this.eventList.size();
                         center.handleCompletion(nextEvent);
                         break;
                     }
@@ -193,7 +196,6 @@ public class NextEventController {
          */
 
         this.generateDatFiles(73, dataMatrix, "replications", iteration); //73 = numero di eventi di sampling
-        //this.estimateDatFiles();
 
         //FINE SIMULAZIONE SINGOLA REPLICAZIONE
 

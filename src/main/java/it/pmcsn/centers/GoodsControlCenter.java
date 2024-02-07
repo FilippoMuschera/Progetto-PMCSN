@@ -6,6 +6,10 @@ import it.pmcsn.event.EventType;
 
 public class GoodsControlCenter extends AbstractCenter{
 
+    public void setProbOfAdvancedInspection(double probOfAdvancedInspection) {
+        this.probOfAdvancedInspection = probOfAdvancedInspection;
+    }
+
     double probOfAdvancedInspection;
 
     public GoodsControlCenter(int servers, double serviceTime, NextEventController controller, double probCenter6) {

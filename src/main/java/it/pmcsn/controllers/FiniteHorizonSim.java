@@ -18,8 +18,9 @@ public class FiniteHorizonSim {
 
     Double[] carsArrivals = new Double[] {0.048, 0.063, 0.032, 0.016}; //lambda delle auto per le 4 fasce orarie
     Double[] camionArrivals = new Double[] {0.064, 0.076, 0.076, 0.038}; //lambda dei camion nelle fasce orarie
-//    Integer[][] config = new Integer[][] {{1,2,1,1}, {4,4,4,2}, {3,4,2,1}, {7,8,8,4}, {11,13,13,7}, {4,5,5,3}};
     int[][] config = new int[][] {{1,2,1,1}, {4,4,4,2}, {3,4,2,1}, {7,8,8,4}, {11,13,13,7}, {4,5,5,3}};
+    double[] p_ca = {0.03, 0.02, 0.02, 0.03};
+    double[] p_cc = {0.04, 0.05, 0.05, 0.06};
 
 
     int timeSlotDuration = 21600; //6 ore, durata fascia oraria
@@ -34,7 +35,7 @@ public class FiniteHorizonSim {
             nextEventController.initArrivals(24*60*60); //24h in s
             nextEventController.rngs = new Rngs();
             nextEventController.rngs.plantSeeds(seed);
-            nextEventController.startFiniteHorizonSim(config, n);
+            nextEventController.startFiniteHorizonSim(config, n, p_ca, p_cc, carsArrivals, camionArrivals);
 
             //genero il seed per la prossima iterazione
             nextEventController.rngs.selectStream(255);
