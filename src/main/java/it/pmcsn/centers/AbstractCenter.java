@@ -26,6 +26,7 @@ public abstract class AbstractCenter {
     public SqArea[] areasOfTimeSlots = new SqArea[4];
     int[] servers;
     int MAX_SERVERS;
+    double timeAtLastStatsReset = 0.0;
 
 
     //Costruttore per simulazione a orizzonte finito. Inizializza array di SqArea
@@ -215,6 +216,7 @@ public abstract class AbstractCenter {
         System.arraycopy(this.area.servedByServer, 0, this.currentSlotArea.servedByServer, 0, this.currentSlotArea.servedByServer.length);
         System.arraycopy(this.area.serverServices, 0, this.currentSlotArea.serverServices, 0, this.currentSlotArea.servedByServer.length);
         this.currentSlotArea.area = this.area.area;
+        this.timeAtLastStatsReset = this.currentEvent.eventTime;
 
     }
 
@@ -271,7 +273,7 @@ public abstract class AbstractCenter {
         double avgUtilization = 0;
         for (int s = 0; s <= SERVERS - 1; s++) {
             try {
-                avgUtilization += currentSlotArea.serverServices[s] / this.currentEvent.eventTime;
+                avgUtilization += currentSlotArea.serverServices[s] / (this.currentEvent.eventTime - this.timeAtLastStatsReset);
             } catch (Exception e) {
                 avgUtilization = 0.0;
                 /*

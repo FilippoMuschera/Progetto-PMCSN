@@ -31,19 +31,19 @@ public class NextEventController {
 
     public void initCentersList() {
 
-        CarVisualControlCenter center1 = new CarVisualControlCenter(1, 18.0, this);
+        CarVisualControlCenter center1 = new CarVisualControlCenter(2, 18.0, this);
         centerList.add(center1);
 
         CamionVisualControlCenter center2 = new CamionVisualControlCenter(4, 48.0, this);
         centerList.add(center2);
 
-        CarDocCheck center3 = new CarDocCheck(3, 50.0, this, 0.03);
+        CarDocCheck center3 = new CarDocCheck(4, 50.0, this, 0.03);
         centerList.add(center3);
 
-        CamionWeightCenterV3 center4 = new CamionWeightCenterV3(4, 100.0, this);
+        CamionWeightCenterV3 center4 = new CamionWeightCenterV3(6, 100.0, this);
         centerList.add(center4);
 
-        GoodsControlCenter center5 = new GoodsControlCenter(7, 175.0, this, 0.06);
+        GoodsControlCenter center5 = new GoodsControlCenter(9, 175.0, this, 0.06);
         centerList.add(center5);
 
         AdvancedChecksCenter center6 = new AdvancedChecksCenter(3, 1000.0, this);
@@ -58,7 +58,7 @@ public class NextEventController {
     }
 
     public void initArrivals(int stopTime) {
-        this.arrivalsController = new ArrivalsController(20.83, 15.625, this);
+        this.arrivalsController = new ArrivalsController(62.5, 26.31579, this);
 
 
         this.STOP_TIME = stopTime;
@@ -298,14 +298,14 @@ public class NextEventController {
     public void estimateDatFiles() throws IOException {
         List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenterV3",
                 "GoodsControlCenter", "AdvancedCheckCenter");
-        List<String> statNames = Arrays.asList("E[Ts]", "E[Tq]");
+        List<String> statNames = Arrays.asList("E[Ts]", "E[Tq]", "meanRho");
         String directory = "batch_files";
         for (String cn : centerNames) {
             for (String sn : statNames) {
                 Estimate estimate = new Estimate();
                 Acs acs = new Acs();
                 estimate.createInterval(directory, cn + "_" + sn + 1);
-                if (sn.equals("E[Tq]"))
+                if (sn.equals("E[Tq]") || sn.equals("meanRho"))
                     acs.autocorrelation(directory, cn + "_" + sn + 1);
             }
         }
