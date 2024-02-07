@@ -8,6 +8,10 @@ public class AdvancedChecksCenter extends AbstractCenter{
         super(servers, 6, serviceTime, controller);
     }
 
+    public AdvancedChecksCenter(int[] servers, double serviceTime, NextEventController controller) {
+        super(servers, 6, serviceTime, controller);
+    }
+
     @Override
     int getNextCenterId() {
         throw new RuntimeException("Should not be calling this method in the last center of the network");

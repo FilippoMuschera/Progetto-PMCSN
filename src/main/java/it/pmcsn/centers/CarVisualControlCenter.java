@@ -9,6 +9,10 @@ public class CarVisualControlCenter extends AbstractCenter{
         super(servers, 1, serviceTime, controller);
     }
 
+    public CarVisualControlCenter(int[] servers, double serviceTime, NextEventController controller) {
+        super(servers, 1, serviceTime, controller);
+    }
+
 
     @Override
     int getNextCenterId() {

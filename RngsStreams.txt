@@ -8,3 +8,5 @@
 104: p_out dopo centro 4
 141: p_classe1 per priority queue centro 4
 105: p_controllo_approfondito da centro 5 verso centro 6
+
+255: utilizzato per generare seed della replicazione successiva nella simulazione ad orizzonte finito

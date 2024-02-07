@@ -24,6 +24,47 @@ public abstract class AbstractCenter {
     protected final double MEAN_SERVICE_TIME; //E[S], va passato ad Exponential, così calcola un valore di exp con questa media
 
     protected NextEventController nextEventController; //il controller che sta gestendo la simulazione e la lista degli eventi
+    public SqArea[] areasOfTimeSlots = new SqArea[4];
+    int[] servers;
+    int MAX_SERVERS = 0;
+
+
+    //Costruttore per simulazione a orizzonte finito. Inizializza array di SqArea
+    public AbstractCenter(int[] servers, int id, double serviceTime, NextEventController controller) {
+        this.SERVERS = servers[0];
+        this.servers = servers;
+        this.ID = id;
+        this.MEAN_SERVICE_TIME = serviceTime;
+        this.jobsInQueue = 0;
+        this.jobsInService = 0;
+        this.totalJobsProcessed = 0;
+        this.currentEvent = null;
+        this.nextEventController = controller;
+        int maxNumberOfServers = 0;
+        for (int n : servers) {
+            if (n > maxNumberOfServers) maxNumberOfServers = n;
+        }
+        for (int i = 0; i < 4; i++) {
+            areasOfTimeSlots[i] = new SqArea(maxNumberOfServers - 1);
+        }
+        this.currentSlotArea = new SqArea(maxNumberOfServers - 1);
+        this.area = new SqArea(maxNumberOfServers - 1);
+        this.MAX_SERVERS = maxNumberOfServers;
+
+
+
+    }
+
+
+    public void setTimeSlot(int ts) { //Se i time slot vanno da 1-4 qui bisogna passare valori 0-3.
+        this.SERVERS = this.servers[ts];
+//        this.area = areasOfTimeSlots[ts];
+//        if (ts > 0) {//Il primo può essere inizializzato vuoto, gli altri devono riprendere lo stato del precedente
+//            System.arraycopy(areasOfTimeSlots[ts-1].serverMask, 0, this.area.serverMask, 0, this.area.serverMask.length);
+//            System.arraycopy(areasOfTimeSlots[ts-1].bufferForServicesTimes, 0, this.area.bufferForServicesTimes, 0, this.area.bufferForServicesTimes.length);
+//
+//        }
+    }
 
 
     public AbstractCenter(int servers, int id, double serviceTime, NextEventController controller) {
@@ -37,6 +78,7 @@ public abstract class AbstractCenter {
         this.totalJobsProcessed = 0;
         this.currentEvent = null;
         this.nextEventController = controller;
+        this.MAX_SERVERS = SERVERS;
 
 
     }
@@ -102,7 +144,13 @@ public abstract class AbstractCenter {
         area.setServerFree(event);
 
         //Se ho avuto un completamento, e c'è un job in coda -> va in servizio
-        if (jobsInQueue > 0) {
+        /*
+         * La seconda condizione dell'if serve per la transizione tra i vari timeslot. Se passo da un timeslot in cui il centro ha 5 server, a uno dove ne
+         * ha solo 4, aspetto che il job che tiene occupato uno dei 5 server si spenga (termini il lavoro) prima di passare a una configurazione a 4
+         * server. In quel caso quindi potrei avere che il 5 server si svuota, ma non deve entrare in esecuzione un job perché il server che ha appena
+         * completato si spegne, quindi non è sempre detto che se un job termina l'esecuzione ne posso far partire un altro. Da qui la seconda condizione.
+         */
+        if (jobsInQueue > 0 && jobsInService < SERVERS) {
             jobsInService++;
             Event complOfNewJob = new Event(EventType.COMPLETION, this.ID);
             complOfNewJob.eventTime = this.getService() + event.eventTime;
@@ -172,7 +220,7 @@ public abstract class AbstractCenter {
 
         //Copio i valori attuali dell'area, ma poi non li aggiornerò. Finita la fascia oraria calcolo i "delta" tra le
         //varie statistiche: quelle saranno le aree da usare per le stats della singola fascia oraria.
-        this.currentSlotArea = new SqArea(this.SERVERS - 1);
+        this.currentSlotArea = new SqArea(this.MAX_SERVERS - 1);
         System.arraycopy(this.area.servedByServer, 0, this.currentSlotArea.servedByServer, 0, this.currentSlotArea.servedByServer.length);
         System.arraycopy(this.area.serverServices, 0, this.currentSlotArea.serverServices, 0, this.currentSlotArea.servedByServer.length);
         this.currentSlotArea.area = this.area.area;
@@ -203,7 +251,15 @@ public abstract class AbstractCenter {
 
         returnList.add(this.lastArrival / jobsOfBatch);
         returnList.add(currentSlotArea.area/jobsOfBatch);
-        returnList.add(currentSlotArea.area / this.currentEvent.eventTime);
+        try {
+            returnList.add(currentSlotArea.area / this.currentEvent.eventTime);
+        } catch (NullPointerException e) {
+            returnList.add(0.0);
+            /*
+             * Semplicemente può succedere che avvenga un sampling quando un centro ha processato ancora 0 job.
+             * In questo caso ha senso mettere manualmente "0" per la statistica.
+             */
+        }
 
 
         double tempArea = this.currentSlotArea.area; //non uso il vero valore di area.area, sennò sottraendoci i tempi di servizio invalido tutto
@@ -211,11 +267,27 @@ public abstract class AbstractCenter {
             tempArea -= currentSlotArea.serverServices[s];
 
         returnList.add(tempArea / jobsOfBatch);
-        returnList.add(tempArea / this.currentEvent.eventTime);
+        try {
+            returnList.add(tempArea / this.currentEvent.eventTime);
+        } catch (NullPointerException e) {
+            returnList.add(0.0);
+            /*
+             * Semplicemente può succedere che avvenga un sampling quando un centro ha processato ancora 0 job.
+             * In questo caso ha senso mettere manualmente "0" per la statistica.
+             */
+        }
 
         double avgUtilization = 0;
         for (int s = 0; s <= SERVERS - 1; s++) {
-            avgUtilization += currentSlotArea.serverServices[s] / this.currentEvent.eventTime;
+            try {
+                avgUtilization += currentSlotArea.serverServices[s] / this.currentEvent.eventTime;
+            } catch (Exception e) {
+                avgUtilization = 0.0;
+                /*
+                 * Semplicemente può succedere che avvenga un sampling quando un centro ha processato ancora 0 job.
+                 * In questo caso ha senso mettere manualmente "0" per la statistica.
+                 */
+            }
 
         }
         returnList.add(avgUtilization/SERVERS);
@@ -276,6 +348,4 @@ public abstract class AbstractCenter {
 
         System.out.println("---------------------------------------------------------------------");
     }
-
-
 }

@@ -12,6 +12,11 @@ public class CarDocCheck extends AbstractCenter{
         this.probFurtherCheck = probFurtherChecks;
     }
 
+    public CarDocCheck(int[] servers, double serviceTime, NextEventController controller, double probFurtherChecks) {
+        super(servers, 3, serviceTime, controller);
+        this.probFurtherCheck = probFurtherChecks;
+    }
+
     @Override
     int getNextCenterId() {
         return 6;
