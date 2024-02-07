@@ -2,9 +2,6 @@ package it.pmcsn.centers;
 
 import it.pmcsn.event.Event;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class SqArea {
     double area = 0.0;                    /* time integrated number in the node  */
     Double[] serverServices;

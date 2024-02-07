@@ -38,7 +38,6 @@ public class CamionWeightCenterV3 extends AbstractCenter {
             Event newEvent = new Event(EventType.ARRIVAL, this.getNextCenterId());
             newEvent.eventTime = currentEvent.eventTime;
             nextEventController.eventList.add(newEvent);
-            return;
 
         }
 

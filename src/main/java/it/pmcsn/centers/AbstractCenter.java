@@ -5,7 +5,6 @@ import it.pmcsn.event.Event;
 import it.pmcsn.event.EventType;
 import it.pmcsn.rngs.Exponential;
 
-import java.awt.geom.Area;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +25,7 @@ public abstract class AbstractCenter {
     protected NextEventController nextEventController; //il controller che sta gestendo la simulazione e la lista degli eventi
     public SqArea[] areasOfTimeSlots = new SqArea[4];
     int[] servers;
-    int MAX_SERVERS = 0;
+    int MAX_SERVERS;
 
 
     //Costruttore per simulazione a orizzonte finito. Inizializza array di SqArea
@@ -58,12 +57,6 @@ public abstract class AbstractCenter {
 
     public void setTimeSlot(int ts) { //Se i time slot vanno da 1-4 qui bisogna passare valori 0-3.
         this.SERVERS = this.servers[ts];
-//        this.area = areasOfTimeSlots[ts];
-//        if (ts > 0) {//Il primo può essere inizializzato vuoto, gli altri devono riprendere lo stato del precedente
-//            System.arraycopy(areasOfTimeSlots[ts-1].serverMask, 0, this.area.serverMask, 0, this.area.serverMask.length);
-//            System.arraycopy(areasOfTimeSlots[ts-1].bufferForServicesTimes, 0, this.area.bufferForServicesTimes, 0, this.area.bufferForServicesTimes.length);
-//
-//        }
     }
 
 
@@ -122,8 +115,7 @@ public abstract class AbstractCenter {
 
             //update services time
             double serviceTime = completionForThisArrival.eventTime - event.eventTime; //tempo_fine - tempo_inizio
-            int chosenServer = area.assignJobToFreeServer(serviceTime);
-            completionForThisArrival.assignedServer = chosenServer;
+            completionForThisArrival.assignedServer = area.assignJobToFreeServer(serviceTime);
 
 
             nextEventController.eventList.add(completionForThisArrival);
@@ -159,8 +151,7 @@ public abstract class AbstractCenter {
 
             //update services time
             double serviceTime = complOfNewJob.eventTime - event.eventTime; //tempo_fine - tempo_inizio
-            int chosenServer = area.assignJobToFreeServer(serviceTime);
-            complOfNewJob.assignedServer = chosenServer;
+            complOfNewJob.assignedServer = area.assignJobToFreeServer(serviceTime);
 
 
             nextEventController.eventList.add(complOfNewJob);
@@ -297,55 +288,4 @@ public abstract class AbstractCenter {
 
     }
 
-    public void statsDumpForLastTimeSlot(String centerName) {
-
-        //calcolo i "delta" delle aree. Per ogni dato: valoreAFineFasciaOraria - valoreAInizioFasciaOraria
-        this.currentSlotArea.area = this.area.area - this.currentSlotArea.area;
-        for (int i = 0; i < this.currentSlotArea.servedByServer.length; i++) {
-            this.currentSlotArea.servedByServer[i] = this.area.servedByServer[i] - this.currentSlotArea.servedByServer[i];
-            this.currentSlotArea.serverServices[i] = this.area.serverServices[i] - this.currentSlotArea.serverServices[i];
-        }
-
-
-
-
-        int sumJobProcessed = 0;
-        int jobsOfTimeSlot = 0;//Mi serve perchè in queste stats divido per il numero di job della fascia, non per il numero di job "assoluto" (dall'inizio della simulazione)
-        for (int i = 0; i < area.servedByServer.length; i++) {
-            sumJobProcessed += area.servedByServer[i];
-            jobsOfTimeSlot += this.currentSlotArea.servedByServer[i];
-        } //Check, just for debug, should never fail
-        if (sumJobProcessed != this.totalJobsProcessed)
-            throw new RuntimeException("sumJobProcessed = " + sumJobProcessed + ", totalJobProcessed = " + totalJobsProcessed);
-
-        DecimalFormat f = new DecimalFormat("###0.00");
-        DecimalFormat g = new DecimalFormat("###0.000");
-
-        System.out.println("\n*** Stats for center: " + centerName + " ***");
-
-        System.out.println("\nfor " + jobsOfTimeSlot + " jobs the service node statistics are:\n");
-        System.out.println("  avg interarrivals .. =   " + f.format(this.lastArrival / jobsOfTimeSlot));
-        System.out.println("  avg wait ........... =   " + f.format(currentSlotArea.area / jobsOfTimeSlot) + " s = " + f.format((currentSlotArea.area / jobsOfTimeSlot)/60) + " min");
-        System.out.println("  avg # in node ...... =   " + f.format(currentSlotArea.area / this.currentEvent.eventTime));
-
-        double tempArea = this.currentSlotArea.area; //non uso il vero valore di area.area, sennò sottraendoci i tempi di servizio invalido tutto
-        for (int s = 0; s <= SERVERS - 1; s++)          /* adjust area to calculate */
-            tempArea -= currentSlotArea.serverServices[s];        /* averages for the queue   */
-
-        System.out.println("  avg delay .......... =   " + f.format(tempArea / jobsOfTimeSlot)+ " s = " + f.format((tempArea / jobsOfTimeSlot)/60) + " min");
-        System.out.println("  avg # in queue ..... =   " + f.format(tempArea / this.currentEvent.eventTime));
-        System.out.println("\nthe server statistics are:\n");
-        System.out.println("    server     utilization     avg service");
-        double avgUtilization = 0;
-        for (int s = 0; s <= SERVERS - 1; s++) {
-            System.out.print("       " + s + "          " + g.format(currentSlotArea.serverServices[s] / this.currentEvent.eventTime) + "          " +
-                    g.format(currentSlotArea.serverServices[s]/ currentSlotArea.servedByServer[s]) + "\n");
-            avgUtilization += currentSlotArea.serverServices[s] / this.currentEvent.eventTime;
-
-
-        }
-        System.out.println("  avg utilization .......... =   " + g.format(avgUtilization/SERVERS) + "\n");
-
-        System.out.println("---------------------------------------------------------------------");
-    }
 }

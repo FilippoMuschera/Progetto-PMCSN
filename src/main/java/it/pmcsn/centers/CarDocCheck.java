@@ -6,6 +6,10 @@ import it.pmcsn.event.EventType;
 
 public class CarDocCheck extends AbstractCenter{
 
+    public void setProbFurtherCheck(double probFurtherCheck) {
+        this.probFurtherCheck = probFurtherCheck;
+    }
+
     double probFurtherCheck; //sarebbe la P_CA della relazione/schema
     public CarDocCheck(int servers, double serviceTime, NextEventController controller, double probFurtherChecks) {
         super(servers, 3, serviceTime, controller);

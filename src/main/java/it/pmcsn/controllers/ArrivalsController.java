@@ -3,7 +3,6 @@ package it.pmcsn.controllers;
 import it.pmcsn.event.Event;
 import it.pmcsn.event.EventType;
 import it.pmcsn.rngs.Exponential;
-import it.pmcsn.rngs.Rngs;
 
 public class ArrivalsController {
 
@@ -11,7 +10,7 @@ public class ArrivalsController {
     public double carArrivalRate; //tasso di interarrivo auto
     public double camionArrivalRate; //tasso interarrivo camion
 
-    private NextEventController controller;
+    private final NextEventController controller;
     private Event carOnHold; //"onHold" nel senso che l'arrivo è stato generato ma non ancora inserito nella coda perchè
                              //non era il più imminente
     private Event camionOnHold; //come sopra
