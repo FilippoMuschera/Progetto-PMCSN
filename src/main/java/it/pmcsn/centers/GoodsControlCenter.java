@@ -13,6 +13,11 @@ public class GoodsControlCenter extends AbstractCenter{
         this.probOfAdvancedInspection = probCenter6;
     }
 
+    public GoodsControlCenter(int[] servers, double serviceTime, NextEventController controller, double probCenter6) {
+        super(servers, 5, serviceTime, controller);
+        this.probOfAdvancedInspection = probCenter6;
+    }
+
     @Override
     int getNextCenterId() {
         return 6;

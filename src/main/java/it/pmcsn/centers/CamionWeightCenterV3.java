@@ -17,6 +17,10 @@ public class CamionWeightCenterV3 extends AbstractCenter {
         super(servers, 4, serviceTime, controller);
     }
 
+    public CamionWeightCenterV3(int[] servers, double serviceTime, NextEventController controller) {
+        super(servers, 4, serviceTime, controller);
+    }
+
     @Override
     int getNextCenterId() {
         return 5;

@@ -11,10 +11,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class NextEventController {
 
@@ -34,19 +31,19 @@ public class NextEventController {
 
     public void initCentersList() {
 
-        CarVisualControlCenter center1 = new CarVisualControlCenter(2, 18.0, this);
+        CarVisualControlCenter center1 = new CarVisualControlCenter(1, 18.0, this);
         centerList.add(center1);
 
-        CamionVisualControlCenter center2 = new CamionVisualControlCenter(4, 48.0, this);
+        CamionVisualControlCenter center2 = new CamionVisualControlCenter(2, 48.0, this);
         centerList.add(center2);
 
-        CarDocCheck center3 = new CarDocCheck(4, 50.0, this, 0.01);
+        CarDocCheck center3 = new CarDocCheck(1, 50.0, this, 0.03);
         centerList.add(center3);
 
-        CamionWeightCenterV3 center4 = new CamionWeightCenterV3(6, 100.0, this);
+        CamionWeightCenterV3 center4 = new CamionWeightCenterV3(4, 100.0, this);
         centerList.add(center4);
 
-        GoodsControlCenter center5 = new GoodsControlCenter(9, 175.0, this, 0.04);
+        GoodsControlCenter center5 = new GoodsControlCenter(7, 175.0, this, 0.06);
         centerList.add(center5);
 
         AdvancedChecksCenter center6 = new AdvancedChecksCenter(3, 1000.0, this);
@@ -63,10 +60,145 @@ public class NextEventController {
     public void initArrivals(int stopTime) {
         //this.arrivalsController = new ArrivalsController(12.76, 15.873, this);
         //this.arrivalsController = new ArrivalsController(24.76, 30.1, this);
+//        this.arrivalsController = new ArrivalsController(62.5, 26.31579, this);
         this.arrivalsController = new ArrivalsController(62.5, 26.31579, this);
 
-        this.STOP_TIME = stopTime; //Secondi in un giorno * giorni di simulazione
+
+        this.STOP_TIME = stopTime;
     }
+
+
+    public void startFiniteHorizonSim(int[][] config, int iteration) throws IOException {
+        CarVisualControlCenter center1 = new CarVisualControlCenter(config[0], 18.0, this);
+        centerList.add(center1);
+
+        CamionVisualControlCenter center2 = new CamionVisualControlCenter(config[1], 48.0, this);
+        centerList.add(center2);
+
+        CarDocCheck center3 = new CarDocCheck(config[2], 50.0, this, 0.03);
+        centerList.add(center3);
+
+        CamionWeightCenterV3 center4 = new CamionWeightCenterV3(config[3], 100.0, this);
+        centerList.add(center4);
+
+        GoodsControlCenter center5 = new GoodsControlCenter(config[4], 175.0, this, 0.06);
+        centerList.add(center5);
+
+        AdvancedChecksCenter center6 = new AdvancedChecksCenter(config[5], 1000.0, this);
+        centerList.add(center6);
+
+        for (AbstractCenter center : centerList) center.setTimeSlot(0); //Set di tutti i centri al primo time slot
+        for (int t = 1200; t <= 24*60*60; t += 1200) {
+            //Creo eventi di sampling delle statistiche e di cambio time slot
+            Event samplingEvent = new Event(EventType.SAMPLING, -1);
+            samplingEvent.eventTime = t;
+            this.eventList.add(samplingEvent);
+            if (t % 21600 == 0 && t < 86400) { //uno ogni 6 ore. L'ultimo non mi interessa perché finirà la simulazione.
+                Event changeTS = new Event(EventType.CHANGE_TS, -1);
+                changeTS.eventTime = t;
+                this.eventList.add(changeTS);
+            }
+        }
+
+        //INIZIO SIMULAZIONE DELLE 24H
+        jobsProcessed = 0;
+        int currentTimeSlot = 0;
+        int samplingElapsed = 0;
+        Double[][][] dataMatrix = new Double[6][73][6]; //6 righe, 73 (sampling ogni 20 minuti = 1200 s) colonne, ogni elemento è un array di 6 double
+        /*
+         * La DataMatrix contiene una riga per ogni centro, e una colonna per ogni batch. Ogni elemento ij è una lista
+         * con tutte le statistiche del centro i per il batch j.
+         */
+
+        while (isGateOpen || !eventList.isEmpty()) {
+
+            if (isGateOpen && this.arrivalIsNeeded(this.eventList)) {
+                Event nextArrival = this.arrivalsController.getNextArrival();
+                eventList.add(nextArrival); //Se il gate è open genero il prossimo arrivo
+                isGateOpen = nextArrival.eventTime < this.STOP_TIME;//Se l'ultimo arrivo è oltre il closing time -> chiudo il gate
+
+            }
+
+            eventList.sort(Comparator.comparingDouble(event -> event.eventTime)); //ordino gli eventi
+
+
+            Event nextEvent = eventList.get(0);
+            eventList.remove(0); //pop
+
+            if (nextEvent.eventType == EventType.SAMPLING) {
+                int i = 0;
+                for (AbstractCenter center : this.centerList) {
+                    //sfrutto la funzione di raccolta statistiche che uso anche per i batch, ma per gli eventi di sampling
+                    dataMatrix[i][samplingElapsed] = center.getBatchCenterStats().toArray(new Double[0]); //set elemento ij
+                    center.notifyStatsReset();
+                    i++;
+                }
+
+                //Sampling terminato, preparo il prossimo
+                samplingElapsed++;
+                continue;
+            }
+
+            if (nextEvent.eventType == EventType.CHANGE_TS) {
+                currentTimeSlot++;
+                for (AbstractCenter center : centerList) {
+                    //center.printStats(center.getClass().getSimpleName());
+                    center.setTimeSlot(currentTimeSlot);
+                }
+                continue;
+            }
+
+
+            jobsProcessed++; //aggiorno il conteggio dei job processati, dato che da qui in poi il codice si occuperà
+            //proprio di processare il job di cui ho appena fatto la pop.
+
+
+            if (nextEvent.eventType == EventType.ARRIVAL) {
+
+
+                for (AbstractCenter center : centerList) {
+                    if (center.ID == nextEvent.centerID) {
+                        center.handleNewArrival(nextEvent);
+                        break;
+                    }
+                }
+
+
+            }
+            else {
+                for (AbstractCenter center : centerList) {
+                    if (center.ID == nextEvent.centerID) {
+                        int currentEventListSize = this.eventList.size();
+                        center.handleCompletion(nextEvent);
+                        break;
+                    }
+                }
+            }
+
+        }
+        //Simulazione finita, ultimo sampling
+        int i = 0;
+        for (AbstractCenter center : this.centerList) {
+            //sfrutto la funzione di raccolta statistiche che uso anche per i batch, ma per gli eventi di sampling
+            dataMatrix[i][samplingElapsed] = center.getBatchCenterStats().toArray(new Double[0]); //set elemento ij
+            center.notifyStatsReset();
+            i++;
+        }
+
+        /*
+         * Per ogni centro, sampling,e per ogni metrica, scrivo in un file .dat tutti i valori medi della metrica.
+         * Per esempio, per il centro CarVisualCheck avrò un file .dat con il E[Tq] di ogni sampling, uno con il
+         * E[Ts] di ogni sampling, e così via, per ogni metrica, per ogni centro.
+         *
+         */
+
+        this.generateDatFiles(73, dataMatrix, "replications", iteration); //73 = numero di eventi di sampling
+        //this.estimateDatFiles();
+
+        //FINE SIMULAZIONE SINGOLA REPLICAZIONE
+
+    }
+
 
     public void startSimulationInfinite(int batchNum, int jobsPerBatch) throws IOException {
         jobsProcessed = 0;
@@ -156,22 +288,23 @@ public class NextEventController {
          *
          */
 
-        this.generateDatFiles(batchNum, dataMatrix);
+        this.generateDatFiles(batchNum, dataMatrix, "batch_files", 1);
         this.estimateDatFiles();
 
     }
 
-    private void estimateDatFiles() throws IOException {
+    public void estimateDatFiles() throws IOException {
         List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenterV3",
                 "GoodsControlCenter", "AdvancedCheckCenter");
-        List<String> statNames = Arrays.asList("Lambda", "E[Ts]", "E[Ns]", "E[Tq]", "E[Nq]", "meanRho");
+        List<String> statNames = Arrays.asList("E[Ts]", "E[Tq]");
         String directory = "batch_files";
         for (String cn : centerNames) {
             for (String sn : statNames) {
                 Estimate estimate = new Estimate();
                 Acs acs = new Acs();
-                estimate.createInterval(directory, cn + "_" + sn);
-                acs.autocorrelation(directory, cn + "_" + sn);
+                estimate.createInterval(directory, cn + "_" + sn + 1);
+                if (sn.equals("E[Tq]"))
+                    acs.autocorrelation(directory, cn + "_" + sn + 1);
             }
         }
     }
@@ -192,12 +325,12 @@ public class NextEventController {
         return true;
     }
 
-    private void generateDatFiles(int batchNums, Double[][][] dataMatrix) {
+    public void generateDatFiles(int batchNums, Double[][][] dataMatrix, String dirName, int iter) {
         int i = 0;
         List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenterV3",
                 "GoodsControlCenter", "AdvancedCheckCenter");
         List<String> statNames = Arrays.asList("Lambda", "E[Ts]", "E[Ns]", "E[Tq]", "E[Nq]", "meanRho");
-        String directory = "batch_files";
+        String directory = dirName;
         for (int stat = 0; stat < statNames.size(); stat++) {
             for (i = 0; i < centerList.size(); i++) {
                 File dir = new File(directory);
@@ -208,7 +341,7 @@ public class NextEventController {
 
                 //creo (o apro) il file .dat per la statistica #stat del centro i-simo, in cui raccolgo i dati di ogni batch j
 
-                File file = new File(dir, centerNames.get(i) + "_" + statNames.get(stat) + ".dat");
+                File file = new File(dir, centerNames.get(i) + "_" + statNames.get(stat) + iter +".dat");
                 if (!file.exists())
                     file.createNewFile();
                 FileWriter writer = new FileWriter(file);
@@ -242,175 +375,7 @@ public class NextEventController {
 
 
 
-    public void startSimulationWithTimeSlots(int timeSlotDuration, Double[] carRates, Double[] camionRates){
-        jobsProcessed = 0;
-        int currentTimeSlot = 1;
-        int slotsNumber = carRates.length;
-        Event nextEvent = null;
 
-        this.arrivalsController = new ArrivalsController(1/carRates[0], 1/camionRates[0], this);
-        this.STOP_TIME = timeSlotDuration * slotsNumber;
-
-        while (isGateOpen || (!eventList.isEmpty() && currentTimeSlot == slotsNumber)) { //seconda condizione: solo l'ultima fascia svuota il sistema
-
-            if (isGateOpen) {
-                Event nextArrival = this.arrivalsController.getNextArrival();
-                eventList.add(nextArrival); //Se il gate è open genero il prossimo arrivo
-                isGateOpen = nextArrival.eventTime < this.STOP_TIME;//Se l'ultimo arrivo è oltre il closing time -> chiudo il gate
-                jobsProcessed++; //stats for the sim
-
-                //Handling delle fasce orarie. Se cambia la fascia oraria devo aggiornare il tasso di arrivo
-                /*TODO è giusto cambiare la fascia oraria su un arrivo GENERATO? Forse andrebbe fatto su un arrivo EFFETTIVO, ovvero quando entra nel sistema, non quando
-                viene messo nella coda dei "nextEvent"*/
-                if ((nextArrival.eventTime > (timeSlotDuration * currentTimeSlot)) && isGateOpen) { //se il gate è chiuso non devo aggiornare più nulla qui
-                    //Devo cambiare fascia oraria
-                    currentTimeSlot++;
-                    this.arrivalsController.carArrivalRate = 1/carRates[currentTimeSlot - 1]; //-1 perchè currentTimeSlot parte da 1
-                    this.arrivalsController.camionArrivalRate = 1/camionRates[currentTimeSlot - 1];//anche qui come sopra
-
-                    //Se sto cambiando fascia oraria -> faccio un dump delle statistiche della fascia oraria appena terminata
-                    System.out.println("+++++++ STATS DUMP FASCIA ORARIA #" + (currentTimeSlot - 1) + " +++++++\n"); //-1 perchè è appena stato incrementato
-                    //ma le stats sono della fascia appena finita
-                    for (AbstractCenter center : centerList) {
-                        center.statsDumpForLastTimeSlot(center.getClass().getSimpleName());
-                        center.notifyStatsReset();
-                    }
-                    System.out.println("++++++++++++++++++++++++++++++++++++\n");
-
-
-
-                }
-
-            }
-
-
-            eventList.sort(Comparator.comparingDouble(event -> event.eventTime)); //ordino gli eventi
-
-
-            nextEvent = eventList.get(0);
-            eventList.remove(0); //pop
-
-
-
-
-            if (nextEvent.eventType == EventType.ARRIVAL) {
-
-
-                for (AbstractCenter center : centerList) {
-                    if (center.ID == nextEvent.centerID) {
-                        center.handleNewArrival(nextEvent);
-                        break;
-                    }
-                }
-
-
-            }
-            else {
-                for (AbstractCenter center : centerList) {
-                    if (center.ID == nextEvent.centerID) {
-                        center.handleCompletion(nextEvent);
-                        break;
-                    }
-                }
-            }
-
-
-
-
-
-
-        }
-        //Simulazione finita, stampo le statistiche
-        System.out.println("+++++++ STATS DUMP FASCIA ORARIA #" + (currentTimeSlot) + " +++++++\n");
-        System.out.println("NextEvent time of last event: " + ((nextEvent.eventTime - 86400)/3600) + "hours after gate closed");
-        for (AbstractCenter center : centerList) {
-            center.statsDumpForLastTimeSlot(center.getClass().getSimpleName());
-        }
-
-        System.out.println("+++++++ STATISTICHE FINALI COMPLESSIVE +++++++\n");
-        for (AbstractCenter center : centerList) {
-            center.printStats(center.getClass().getSimpleName());
-        }
-
-        System.out.println("***   DEBUG  ***\nCar arrivals = " + arrivalsController.counterCars +
-                "\nCamion arrivals = " + arrivalsController.counterCamion);
-        if (arrivalsController.counterCamion + arrivalsController.counterCars != jobsProcessed + 1)
-            //-1 perchè genero un arrivo che non userò mai: io ho sempre due arrivi pronti (una macchina e un camion). Appena uno dei due triggera lo
-            //stop time, chiudo il gate. A quel punto, l'arrivo rimasto nell'arrivalController è stato generato, ma sarebbe arrivato dopo quello che ha
-            //triggerato la chiusura del gate. In pratica è un arrivo che trova il cancello chiuso, e non entra nel sistema, ma viene generato, quindi
-            //non lo considero nel computo degli arrivi perchè è corretto che non arrivi mai nel sistema. Se lo facesse vuol dire che ho consentito
-            //a un job l'arrivo dopo la chiusura del cancello.
-            throw new RuntimeException("Numero Arrivi generati != Numero arrivi nel sistema"); //Non dovrebbe mai accadere, ma è un check
-
-    }
-
-    public void starSimulation() {
-
-        jobsProcessed = 0;
-        while (isGateOpen || !eventList.isEmpty()) {
-
-            if (isGateOpen) {
-                Event nextArrival = this.arrivalsController.getNextArrival();
-                eventList.add(nextArrival); //Se il gate è open genero il prossimo arrivo
-                isGateOpen = nextArrival.eventTime < this.STOP_TIME;//Se l'ultimo arrivo è oltre il closing time -> chiudo il gate
-                jobsProcessed++; //stats for the sim
-
-            }
-
-            eventList.sort(Comparator.comparingDouble(event -> event.eventTime)); //ordino gli eventi
-
-
-            Event nextEvent = eventList.get(0);
-            eventList.remove(0); //pop
-
-            if (nextEvent.eventType == EventType.ARRIVAL) {
-
-
-                for (AbstractCenter center : centerList) {
-                    if (center.ID == nextEvent.centerID) {
-                        center.handleNewArrival(nextEvent);
-                        break;
-                    }
-                }
-
-
-            }
-            else {
-                for (AbstractCenter center : centerList) {
-                    if (center.ID == nextEvent.centerID) {
-                        center.handleCompletion(nextEvent);
-                        break;
-                    }
-                }
-            }
-
-        }
-        //Simulazione finita, stampo le statistiche
-        for (AbstractCenter center : centerList) {
-            center.printStats(center.getClass().getSimpleName());
-        }
-
-
-    }
-
-    public static void main(String[] args) {
-        NextEventController nextEventController = new NextEventController();
-        nextEventController.initCentersList();
-        nextEventController.initRngs();
-        nextEventController.initArrivals(86400*1);
-
-        nextEventController.starSimulation();
-
-        System.out.println("***   DEBUG  ***\nCar arrivals = " + nextEventController.arrivalsController.counterCars +
-                "\nCamion arrivals = " + nextEventController.arrivalsController.counterCamion);
-        if (nextEventController.arrivalsController.counterCamion + nextEventController.arrivalsController.counterCars != nextEventController.jobsProcessed + 1)
-            //-1 perchè genero un arrivo che non userò mai: io ho sempre due arrivi pronti (una macchina e un camion). Appena uno dei due triggera lo
-            //stop time, chiudo il gate. A quel punto, l'arrivo rimasto nell'arrivalController è stato generato, ma sarebbe arrivato dopo quello che ha
-            //triggerato la chiusura del gate. In pratica è un arrivo che trova il cancello chiuso, e non entra nel sistema, ma viene generato, quindi
-            //non lo considero nel computo degli arrivi perchè è corretto che non arrivi mai nel sistema. Se lo facesse vuol dire che ho consentito
-            //a un job l'arrivo dopo la chiusura del cancello.
-            throw new RuntimeException("Numero Arrivi generati != Numero arrivi nel sistema"); //Non dovrebbe mai accadere, ma è un check
-    }
 
 
 

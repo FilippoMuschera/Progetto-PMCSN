@@ -17,7 +17,7 @@ public class Batch {
         nextEventController.initCentersList();
         nextEventController.initRngs();
 
-        nextEventController.startSimulationInfinite(128, 10000);
+        nextEventController.startSimulationInfinite(128, 3000); //batch 3000 consente di avere autocorrelation (lag 1) < 0.2
 
 
 

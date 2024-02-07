@@ -9,6 +9,10 @@ public class CamionVisualControlCenter extends AbstractCenter{
         super(servers, 2, serviceTime, controller);
     }
 
+    public CamionVisualControlCenter(int[] servers, double serviceTime, NextEventController controller) {
+        super(servers, 2, serviceTime, controller);
+    }
+
     @Override
     int getNextCenterId() {
         return 4;

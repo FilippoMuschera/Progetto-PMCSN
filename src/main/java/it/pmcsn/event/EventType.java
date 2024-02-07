@@ -2,7 +2,7 @@ package it.pmcsn.event;
 
 public enum EventType {
 
-    ARRIVAL, COMPLETION
+    ARRIVAL, COMPLETION, SAMPLING, CHANGE_TS
 
 
 }

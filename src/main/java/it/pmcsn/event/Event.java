@@ -9,8 +9,6 @@ public class Event {
 
     public int assignedServer;
 
-    public int priorityQueue;
-
 
     public Event(EventType type, int id) {
         this.centerID = id;

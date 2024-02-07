@@ -94,4 +94,54 @@ public class Estimate{
             System.out.print("ERROR - insufficient data\n");
         }
     }
+
+
+
+
+    public double[] evalMean(double[] dataList) {
+
+        long   n    = 0;                     /* counts data points */
+        double sum  = 0.0;
+        double mean = 0.0;
+        double data;
+        double stdev;
+        double u, t, w;
+        double diff;
+
+        Rvms rvms = new Rvms();
+
+            for (double dataPoint : dataList) {         /* use Welford's one-pass method */
+                    data = dataPoint;
+
+                    n++;                 /* and standard deviation        */
+                    diff  = data - mean;
+                    sum  += diff * diff * (n - 1.0) / n;
+                    mean += diff / n;
+
+
+
+
+            }
+
+
+        stdev  = Math.sqrt(sum / n);
+
+        DecimalFormat df = new DecimalFormat("###0.00000");
+
+        if (n > 1) {
+            u = 1.0 - 0.5 * (1.0 - LOC);              /* interval parameter  */
+            t = rvms.idfStudent(n - 1, u);            /* critical value of t */
+            w = t * stdev / Math.sqrt(n - 1);         /* interval half width */
+
+            return new double[] {Double.parseDouble(df.format(mean)), Double.parseDouble(df.format(w))};
+
+
+        }
+        else{
+            //System.out.print("ERROR - insufficient data\n");
+        }
+        return null;
+    }
+
+
 }
