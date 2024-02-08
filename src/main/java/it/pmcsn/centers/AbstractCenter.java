@@ -58,6 +58,24 @@ public abstract class AbstractCenter {
 
     public void setTimeSlot(int ts) { //Se i time slot vanno da 1-4 qui bisogna passare valori 0-3.
         this.SERVERS = this.servers[ts];
+        if (this.jobsInService < this.SERVERS && this.jobsInQueue > 0) { //Ho nuovi server liberi e dei job in coda
+            //i nuovi posti liberi vanno subito riempiti
+            double time = ts * 21600;
+            while (this.jobsInService < this.SERVERS && this.jobsInQueue > 0) { //Finché non esaurisco i posti o i job
+                jobsInService++;
+                Event complOfNewJob = new Event(EventType.COMPLETION, this.ID);
+                complOfNewJob.eventTime = this.getService() + time;
+
+                jobsInQueue--;
+
+                //update services time
+                double serviceTime = complOfNewJob.eventTime - time; //tempo_fine - tempo_inizio
+                complOfNewJob.assignedServer = area.assignJobToFreeServer(serviceTime);
+
+
+                nextEventController.eventList.add(complOfNewJob);
+            }
+        }
     }
 
 
@@ -216,7 +234,11 @@ public abstract class AbstractCenter {
         System.arraycopy(this.area.servedByServer, 0, this.currentSlotArea.servedByServer, 0, this.currentSlotArea.servedByServer.length);
         System.arraycopy(this.area.serverServices, 0, this.currentSlotArea.serverServices, 0, this.currentSlotArea.servedByServer.length);
         this.currentSlotArea.area = this.area.area;
-        this.timeAtLastStatsReset = this.currentEvent.eventTime;
+        try {
+            this.timeAtLastStatsReset = this.currentEvent.eventTime;
+        } catch (NullPointerException e) { //Se si verifica vuol dire che il centro sta facendo sampling ma non gli è ancora giunto nessun job
+            this.timeAtLastStatsReset = 0.0;
+        }
 
     }
 

@@ -31,22 +31,22 @@ public class NextEventController {
 
     public void initCentersList() {
 
-        CarVisualControlCenter center1 = new CarVisualControlCenter(2, 18.0, this);
+        CarVisualControlCenter center1 = new CarVisualControlCenter(1, 18.0, this);
         centerList.add(center1);
 
-        CamionVisualControlCenter center2 = new CamionVisualControlCenter(4, 48.0, this);
+        CamionVisualControlCenter center2 = new CamionVisualControlCenter(2, 48.0, this);
         centerList.add(center2);
 
-        CarDocCheck center3 = new CarDocCheck(4, 50.0, this, 0.03);
+        CarDocCheck center3 = new CarDocCheck(1, 50.0, this, 0.02);
         centerList.add(center3);
 
-        CamionWeightCenterV3 center4 = new CamionWeightCenterV3(6, 100.0, this);
+        CamionWeightCenterV3 center4 = new CamionWeightCenterV3(4, 100.0, this);
         centerList.add(center4);
 
-        GoodsControlCenter center5 = new GoodsControlCenter(9, 175.0, this, 0.06);
+        GoodsControlCenter center5 = new GoodsControlCenter(7, 175.0, this, 0.04);
         centerList.add(center5);
 
-        AdvancedChecksCenter center6 = new AdvancedChecksCenter(3, 1000.0, this);
+        AdvancedChecksCenter center6 = new AdvancedChecksCenter(2, 1000.0, this);
         centerList.add(center6);
 
 
@@ -55,10 +55,11 @@ public class NextEventController {
     public void initRngs() {
         this.rngs = new Rngs();
         this.rngs.plantSeeds(999L);
+        //Per la verifica (se la si vuole replicare con i valori esatti del report, è stato usato il seed 999L.
     }
 
     public void initArrivals(int stopTime) {
-        this.arrivalsController = new ArrivalsController(62.5, 26.31579, this);
+        this.arrivalsController = new ArrivalsController(1/0.016, 1/0.038, this);
 
 
         this.STOP_TIME = stopTime;
@@ -298,14 +299,14 @@ public class NextEventController {
     public void estimateDatFiles() throws IOException {
         List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenterV3",
                 "GoodsControlCenter", "AdvancedCheckCenter");
-        List<String> statNames = Arrays.asList("E[Ts]", "E[Tq]", "meanRho");
+        List<String> statNames = Arrays.asList("E[Ts]", "E[Tq]", "meanRho", "Lambda");
         String directory = "batch_files";
         for (String cn : centerNames) {
             for (String sn : statNames) {
                 Estimate estimate = new Estimate();
                 Acs acs = new Acs();
                 estimate.createInterval(directory, cn + "_" + sn + 1);
-                if (sn.equals("E[Tq]") || sn.equals("meanRho"))
+                if (sn.equals("Lambda"))
                     acs.autocorrelation(directory, cn + "_" + sn + 1);
             }
         }

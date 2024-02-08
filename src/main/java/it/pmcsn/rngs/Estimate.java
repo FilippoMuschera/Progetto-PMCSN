@@ -16,20 +16,21 @@ package it.pmcsn.rngs;
  * ----------------------------------------------------------------------
  */
 
-import java.lang.Math;
 import java.io.*;
-import java.text.*;
+import java.text.DecimalFormat;
+import java.util.Arrays;
+import java.util.List;
 import java.util.StringTokenizer;
 
-public class Estimate{
+public class Estimate {
 
     static final double LOC = 0.95;    /* level of confidence,        */
     /* use 0.95 for 95% confidence */
 
     public void createInterval(String directory, String filename) {
 
-        long   n    = 0;                     /* counts data points */
-        double sum  = 0.0;
+        long n = 0;                     /* counts data points */
+        double sum = 0.0;
         double mean = 0.0;
         double data;
         double stdev;
@@ -50,29 +51,29 @@ public class Estimate{
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
-        try{
+        try {
             line = br.readLine();
 
-            while (line!=null) {         /* use Welford's one-pass method */
+            while (line != null) {         /* use Welford's one-pass method */
                 StringTokenizer tokenizer = new StringTokenizer(line);
-                if(tokenizer.hasMoreTokens()){
+                if (tokenizer.hasMoreTokens()) {
                     data = Double.parseDouble(tokenizer.nextToken());
 
                     n++;                 /* and standard deviation        */
-                    diff  = data - mean;
-                    sum  += diff * diff * (n - 1.0) / n;
+                    diff = data - mean;
+                    sum += diff * diff * (n - 1.0) / n;
                     mean += diff / n;
                 }
 
                 line = br.readLine();
 
             }
-        }catch(IOException e){
+        } catch (IOException e) {
             System.err.println(e);
             System.exit(1);
         }
 
-        stdev  = Math.sqrt(sum / n);
+        stdev = Math.sqrt(sum / n);
 
         DecimalFormat df = new DecimalFormat("###0.00000");
 
@@ -86,22 +87,19 @@ public class Estimate{
             System.out.print(" and with " + (int) (100.0 * LOC + 0.5) +
                     "% confidence\n");
             System.out.print("the expected value is in the interval ");
-            System.out.print( df.format(mean) + " +/- " + df.format(w) + "\n\n");
+            System.out.print(df.format(mean) + " +/- " + df.format(w) + "\n\n");
 
 
-        }
-        else{
+        } else {
             System.out.print("ERROR - insufficient data\n");
         }
     }
 
 
-
-
     public double[] evalMean(double[] dataList) {
 
-        long   n    = 0;                     /* counts data points */
-        double sum  = 0.0;
+        long n = 0;                     /* counts data points */
+        double sum = 0.0;
         double mean = 0.0;
         double data;
         double stdev;
@@ -110,21 +108,19 @@ public class Estimate{
 
         Rvms rvms = new Rvms();
 
-            for (double dataPoint : dataList) {         /* use Welford's one-pass method */
-                    data = dataPoint;
+        for (double dataPoint : dataList) {         /* use Welford's one-pass method */
+            data = dataPoint;
 
-                    n++;                 /* and standard deviation        */
-                    diff  = data - mean;
-                    sum  += diff * diff * (n - 1.0) / n;
-                    mean += diff / n;
-
-
+            n++;                 /* and standard deviation        */
+            diff = data - mean;
+            sum += diff * diff * (n - 1.0) / n;
+            mean += diff / n;
 
 
-            }
+        }
 
 
-        stdev  = Math.sqrt(sum / n);
+        stdev = Math.sqrt(sum / n);
 
         DecimalFormat df = new DecimalFormat("###0.00000");
 
@@ -133,11 +129,10 @@ public class Estimate{
             t = rvms.idfStudent(n - 1, u);            /* critical value of t */
             w = t * stdev / Math.sqrt(n - 1);         /* interval half width */
 
-            return new double[] {Double.parseDouble(df.format(mean)), Double.parseDouble(df.format(w))};
+            return new double[]{Double.parseDouble(df.format(mean)), Double.parseDouble(df.format(w))};
 
 
-        }
-        else{
+        } else {
             //System.out.print("ERROR - insufficient data\n");
         }
         return null;
@@ -145,7 +140,20 @@ public class Estimate{
 
     public static void main(String[] args) {
         Estimate estimate = new Estimate();
-        estimate.createInterval("/home/filippo/Desktop/Uni/PMCSN/Script", "FASCIA_ORARIA-CarVisualCenter_E[Ts]_AGGREGATE");
+
+        String baseDir = "/home/filippo/Desktop/Uni/PMCSN/Script";
+        List<String> files = Arrays.asList("AdvancedCheckCenter_E[Ts]_AGGREGATE",
+                "CamionVisualCenter_E[Ts]_AGGREGATE",
+                "CamionWeightCenterV3_E[Ts]_AGGREGATE", "GoodsControlCenter_E[Ts]_AGGREGATE",
+                "CarDocCheckCenter_E[Ts]_AGGREGATE",
+                "CarVisualCenter_E[Ts]_AGGREGATE"
+        );
+
+
+        for (String f : files) {
+            estimate.createInterval(baseDir, f);
+
+        }
     }
 
 }
