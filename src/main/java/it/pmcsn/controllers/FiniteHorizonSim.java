@@ -47,47 +47,49 @@ public class FiniteHorizonSim {
 
         List<String> centerNames = Arrays.asList("CarVisualCenter", "CamionVisualCenter", "CarDocCheckCenter", "CamionWeightCenterV3",
                 "GoodsControlCenter", "AdvancedCheckCenter");
-        for (String cn : centerNames) {
-            // Ciclo per scorrere le righe
-            for (int lineNumber = 1; lineNumber < 73; lineNumber++) { //Per ogni riga
-                List<Object> dataPoints = new ArrayList<>();
-                // Ciclo per scorrere i file
-                for (int fileNumber = 0; fileNumber < numberOfFiles; fileNumber++) { //Per ogni file
-                    String fileName =  cn + "_" + "E[Ts]"+ fileNumber + ".dat";
+        for (String statName : Arrays.asList("E[Ts]", "meanRho")){
+            for (String cn : centerNames) {
+                // Ciclo per scorrere le righe
+                for (int lineNumber = 1; lineNumber < 73; lineNumber++) { //Per ogni riga
+                    List<Object> dataPoints = new ArrayList<>();
+                    // Ciclo per scorrere i file
+                    for (int fileNumber = 0; fileNumber < numberOfFiles; fileNumber++) { //Per ogni file
+                        String fileName = cn + "_" + statName + fileNumber + ".dat";
 
-                    // Leggi la riga corrente dal file
-                    String line = readLineFromFile(fileName, lineNumber);
+                        // Leggi la riga corrente dal file
+                        String line = readLineFromFile(fileName, lineNumber);
 
-                    // Stampa o elabora il valore della riga
-                    if (line != null) {
-                        if (line.equals("Infinity") || line.equals("NaN"))
-                            dataPoints.add(0.0);
-                        else
-                            dataPoints.add(Double.parseDouble(line));
+                        // Stampa o elabora il valore della riga
+                        if (line != null) {
+                            if (line.equals("Infinity") || line.equals("NaN"))
+                                dataPoints.add(0.0);
+                            else
+                                dataPoints.add(Double.parseDouble(line));
+                        }
                     }
-                }
 
-                Estimate estimate = new Estimate();
-                double[] dataPointsArray = new double[dataPoints.size()];
-                for (int i = 0; i < dataPoints.size(); i++) {
-                    dataPointsArray[i] = (double) dataPoints.get(i);
-                }
-                double[] meanArray = estimate.evalMean(dataPointsArray);
-                double mean = meanArray == null ? 0.0 : meanArray[0]; //se è null <-> 0 job processati in quell'intervallo -> E[Ts] = 0
+                    Estimate estimate = new Estimate();
+                    double[] dataPointsArray = new double[dataPoints.size()];
+                    for (int i = 0; i < dataPoints.size(); i++) {
+                        dataPointsArray[i] = (double) dataPoints.get(i);
+                    }
+                    double[] meanArray = estimate.evalMean(dataPointsArray);
+                    double mean = meanArray == null ? 0.0 : meanArray[0]; //se è null <-> 0 job processati in quell'intervallo -> E[Ts] = 0
 
-                //creo (o apro) il file .dat per la statistica #stat del centro i-simo, in cui raccolgo i dati di ogni batch j
+                    //creo (o apro) il file .dat per la statistica #stat del centro i-simo, in cui raccolgo i dati di ogni batch j
 
-                File file = new File("replications", cn + "_" + "E[Ts]" + "_AGGREGATE" +".dat");
-                if (!file.exists())
-                    file.createNewFile();
-                FileWriter writer = new FileWriter(file, true);
-                BufferedWriter bw = new BufferedWriter(writer);
+                    File file = new File("replications", cn + "_" + statName + "_AGGREGATE" + ".dat");
+                    if (!file.exists())
+                        file.createNewFile();
+                    FileWriter writer = new FileWriter(file, true);
+                    BufferedWriter bw = new BufferedWriter(writer);
 
                     bw.append(String.valueOf(mean));
                     bw.append("\n");
                     bw.flush();
 
 
+                }
             }
         }
 
