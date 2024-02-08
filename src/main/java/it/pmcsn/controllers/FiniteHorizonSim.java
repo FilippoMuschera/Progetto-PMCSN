@@ -18,9 +18,13 @@ public class FiniteHorizonSim {
 
     Double[] carsArrivals = new Double[] {0.048, 0.063, 0.032, 0.016}; //lambda delle auto per le 4 fasce orarie
     Double[] camionArrivals = new Double[] {0.064, 0.076, 0.076, 0.038}; //lambda dei camion nelle fasce orarie
-    int[][] config = new int[][] {{1,2,1,1}, {4,4,4,2}, {3,4,2,1}, {7,8,8,4}, {11,13,13,7}, {4,5,5,3}};
-    double[] p_ca = {0.03, 0.02, 0.02, 0.03};
-    double[] p_cc = {0.04, 0.05, 0.05, 0.06};
+    int[][] config = new int[][] {{1,2,1,1}, {4,4,4,2}, {3,4,2,1}, {7,8,8,4}, {11,13,13,7}, {4,4,4,2}}; //final config
+//    int[][] config = new int[][] {{1,2,1,1}, {4,4,4,2}, {3,4,2,1}, {7,8,8,4}, {11,13,13,7}, {4,4,4,4}}; //new QoS
+
+    double[] p_ca = {0.03, 0.01, 0.02, 0.02};
+    double[] p_cc = {0.04, 0.04, 0.04, 0.04}; //basic
+//    double[] p_cc = {0.05, 0.05, 0.05, 0.05}; //new QoS
+
 
 
     int timeSlotDuration = 21600; //6 ore, durata fascia oraria
