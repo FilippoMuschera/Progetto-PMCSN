@@ -13,7 +13,7 @@ public class Batch {
         nextEventController.initCentersList();
         nextEventController.initRngs();
 
-        nextEventController.startSimulationInfinite(128, 3000); //batch 3000 consente di avere autocorrelation (lag 1) < 0.2
+        nextEventController.startSimulationInfinite(128, 10000); //batch 10000 consente di avere autocorrelation (lag 1) < 0.2. In verifica utilizzato k = 3000
 
 
 
