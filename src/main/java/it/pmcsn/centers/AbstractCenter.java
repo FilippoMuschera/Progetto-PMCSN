@@ -242,7 +242,7 @@ public abstract class AbstractCenter {
 
 
 
-        returnList.add(this.lastArrival / jobsOfBatch);
+        returnList.add(1 / ((this.lastArrival - this.timeAtLastStatsReset) / jobsOfBatch));
         returnList.add(currentSlotArea.area/jobsOfBatch);
         try {
             returnList.add(currentSlotArea.area / this.currentEvent.eventTime);
@@ -283,7 +283,9 @@ public abstract class AbstractCenter {
             }
 
         }
-        returnList.add(avgUtilization/SERVERS);
+        returnList.add(Math.min(1.0, avgUtilization/SERVERS)); //A volte per approssimazioni o per passaggi tra fasce orarie in cui un centro ha
+        //temporaneamente più server di quanti assegnati (vedi relazione & gestione cambio fasce orarie), si mette un upper bound a 1 per evitare di
+        //vedere statistiche con rho leggermente maggiore di 1.
 
         return returnList;
 
